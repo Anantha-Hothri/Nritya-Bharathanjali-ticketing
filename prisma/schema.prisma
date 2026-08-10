@@ -1,0 +1,69 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+}
+
+model BatchAllocation {
+  id            String   @id @default(uuid())
+  batchName     String
+  batchCode     String   @unique
+  assignedRows  String   // JSON string of rows e.g. ["Row A", "Row B", "Row C"]
+  capacity      Int      // Total allocated tickets for this batch
+  bookedCount   Int      @default(0)
+  ticketPrice   Float    @default(500.0) // Configurable placeholder ticket price
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ExternalAllocation {
+  id            String   @id @default(uuid())
+  rowName       String   @unique
+  capacity      Int      // Allocated tickets for external attendees in this row
+  bookedCount   Int      @default(0)
+  ticketPrice   Float    @default(500.0) // Configurable placeholder ticket price
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Booking {
+  id              String   @id @default(uuid())
+  bookingId       String   @unique // Public unique reference e.g. SKD-84920
+  buyerType       String   // "MSN" | "EXTERNAL"
+  customerName    String
+  phone           String
+  isWhatsappSame  Boolean  @default(true)
+  whatsapp        String
+  email           String
+  studentName     String?  // Applicable for MSN
+  batchName       String?  // Applicable for MSN
+  batchCode       String?  // Applicable for MSN
+  allocatedRow    String   // Assigned row e.g. "Row A, Row B"
+  ticketQty       Int
+  totalAmount     Float
+  paymentStatus   String   @default("PENDING") // "PENDING" | "PAID" | "FAILED"
+  paymentId       String?  // Razorpay payment ID
+  razorpayOrderId String?  // Razorpay order ID
+  bookingDate     DateTime @default(now())
+  tickets         Ticket[]
+}
+
+model Ticket {
+  id         String   @id @default(uuid())
+  ticketCode String   @unique
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  qrCodeData String
+  issuedAt   DateTime @default(now())
+}

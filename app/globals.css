@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "../css/gkn-theme.css";
+
+/* Cultural Luxury Theme Base Overrides */
+html {
+  scroll-behavior: smooth;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--ivory);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glass & Card Utilities */
+.glass-nav {
+  background: rgba(251, 246, 236, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(182, 138, 62, 0.35);
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--maroon);
+  color: var(--ivory);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.input-luxe {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(182, 138, 62, 0.45);
+  border-radius: var(--radius-sm);
+  background: var(--white-warm);
+  color: var(--ink);
+  font-family: 'Jost', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input-luxe:focus {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px rgba(110, 20, 35, 0.15);
+}
+
+.card-gold-accent {
+  background: var(--white-warm);
+  border: 1px solid rgba(182, 138, 62, 0.35);
+  box-shadow: var(--shadow-luxe);
+  border-radius: var(--radius-md);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.card-gold-accent:hover {
+  box-shadow: 0 24px 48px -20px rgba(110, 20, 35, 0.45);
+}

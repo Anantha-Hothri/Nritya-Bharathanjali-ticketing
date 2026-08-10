@@ -1,0 +1,259 @@
+/* ==========================================================================
+   GURU KOUSALYA NIVAS - CULTURAL LUXURY THEME BASE SYSTEM
+   CSS Design Tokens, Typography, Micro-Animations, and UI Components
+   ========================================================================== */
+
+/* ===== 1. GOOGLE FONTS IMPORT ===== */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Jost:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Marcellus&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+/* ===== 2. DESIGN TOKENS & COLOR PALETTE ===== */
+:root {
+  /* Warm Cultural Palette */
+  --ivory: #FBF6EC;
+  --cream: #F6EEDE;
+  --sandal: #EFE3CC;
+  --parchment: #F3EAD7;
+  --maroon: #6E1423;
+  --maroon-deep: #571019;
+  --maroon-soft: #8A2A36;
+  --gold: #B68A3E;
+  --gold-light: #C9A75A;
+  --gold-pale: #E3D2A6;
+  --bronze: #9C6B36;
+  --saffron: #C97E3A;
+  --rose: #E2BCB5;
+  --ink: #3A2A24;
+  --ink-soft: #6B574C;
+  --white-warm: #FFFDF8;
+
+  /* Shadows & Glows */
+  --shadow-luxe: 0 18px 40px -28px rgba(110, 20, 35, 0.35);
+  --shadow-gold: 0 10px 30px -15px rgba(182, 138, 62, 0.4);
+  --glow-saffron: 0 0 25px rgba(201, 126, 58, 0.5);
+
+  /* Borders & Radius */
+  --border-gold: 1px solid rgba(182, 138, 62, 0.35);
+  --border-maroon: 1px solid rgba(110, 20, 35, 0.25);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+/* ===== 3. BASE RESET & TYPOGRAPHY ===== */
+html {
+  scroll-behavior: smooth;
+  box-sizing: border-box;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--ivory);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 17px;
+  }
+}
+
+/* Font Utility Classes */
+.font-serif-display {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-marcellus {
+  font-family: 'Marcellus', serif;
+}
+
+.font-body {
+  font-family: 'Jost', sans-serif;
+}
+
+.font-num {
+  font-family: 'Cinzel', Georgia, serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Selection */
+::selection {
+  background: var(--maroon);
+  color: var(--ivory);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bronze);
+}
+
+/* ===== 4. TYPOGRAPHY HELPERS ===== */
+.eyebrow {
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--bronze);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cormorant Garamond', serif;
+  color: var(--maroon);
+  font-weight: 600;
+  margin-top: 0;
+}
+
+/* ===== 5. CARDS & CONTAINERS ===== */
+.luxe-card {
+  background: var(--white-warm);
+  border: var(--border-gold);
+  box-shadow: var(--shadow-luxe);
+  border-radius: var(--radius-md);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.luxe-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 48px -20px rgba(110, 20, 35, 0.45);
+}
+
+/* Temple Arch Shape */
+.temple-arch {
+  border-top-left-radius: 50% 28%;
+  border-top-right-radius: 50% 28%;
+}
+
+/* Image Zoom Effect */
+.zoom-parent {
+  overflow: hidden;
+  position: relative;
+}
+
+.zoom-img {
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.zoom-parent:hover .zoom-img {
+  transform: scale(1.07);
+}
+
+/* ===== 6. BUTTONS & INTERACTIVES ===== */
+.luxe-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.8rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.luxe-button-solid {
+  background: var(--maroon);
+  color: var(--ivory);
+  border: 1px solid var(--maroon);
+}
+
+.luxe-button-solid:hover {
+  background: var(--maroon-deep);
+  border-color: var(--maroon-deep);
+  box-shadow: var(--shadow-luxe);
+}
+
+.luxe-button-outline {
+  background: transparent;
+  color: var(--maroon);
+  border: 1px solid var(--gold);
+}
+
+.luxe-button-outline:hover {
+  background: var(--maroon);
+  color: var(--ivory);
+  border-color: var(--maroon);
+}
+
+/* ===== 7. MICRO-ANIMATIONS ===== */
+
+/* Slow Mandala Spin */
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-slow {
+  animation: spin-slow 90s linear infinite;
+}
+
+/* Diya Flame Flicker */
+@keyframes flicker {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 1; }
+  25% { transform: scaleY(1.12) scaleX(0.94); opacity: 0.88; }
+  50% { transform: scaleY(0.94) scaleX(1.05); opacity: 1; }
+  75% { transform: scaleY(1.06) scaleX(0.97); opacity: 0.92; }
+}
+
+.flame {
+  transform-origin: center bottom;
+  animation: flicker 1.5s ease-in-out infinite;
+}
+
+.flame-b { animation-delay: 0.35s; }
+.flame-c { animation-delay: 0.7s; }
+.flame-d { animation-delay: 0.5s; }
+.flame-e { animation-delay: 0.9s; }
+
+/* Flame Glow Halo */
+@keyframes glow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.8; }
+}
+
+.flame-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Hanging Lamp Gentle Sway */
+@keyframes sway {
+  0%, 100% { transform: rotate(-2.2deg); }
+  50% { transform: rotate(2.2deg); }
+}
+
+.sway {
+  transform-origin: top center;
+  animation: sway 4.5s ease-in-out infinite;
+}
+
+/* Rangoli Overlay Mix Blend */
+.rangoli-bg {
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+}
