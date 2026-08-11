@@ -3,6 +3,8 @@ import { prisma } from '../../../../lib/db';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const { bookingId, razorpayPaymentId, razorpaySignature } = await request.json();

@@ -2,6 +2,8 @@ import React from 'react';
 import { prisma } from '../../../lib/db';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }) {
   return {
     title: `E-Ticket #${params.bookingId} | Nritya Bharathanjali 2026`,
