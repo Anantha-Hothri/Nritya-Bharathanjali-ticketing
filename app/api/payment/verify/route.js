@@ -95,7 +95,7 @@ export async function POST(request) {
       }
     });
 
-    console.log(`[SUCCESS] Booking ${booking.bookingId} verified & tickets issued! WhatsApp sent to ${booking.whatsapp}`);
+    console.log(`[SUCCESS] Booking ${booking.bookingId} verified & tickets issued!`);
 
     return NextResponse.json({
       success: true,

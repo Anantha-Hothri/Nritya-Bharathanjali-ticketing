@@ -5,15 +5,7 @@ export default function Navbar() {
     <header className="glass-nav sticky top-0 z-50 transition-all">
       <div className="max-w-[1440px] mx-auto px-6 sm:px-10 py-3 flex items-center justify-between">
         <a href="/" className="flex items-center gap-3 text-decoration-none">
-          <img src="/assets/logo_red.png" alt="M.S. Natyakshetra Logo" className="h-12 w-auto object-contain" />
-          <div className="hidden sm:block">
-            <span className="block font-marcellus text-sm font-semibold tracking-wider" style={{ color: 'var(--maroon)' }}>
-              M.S. NATYAKSHETRA
-            </span>
-            <span className="block text-xs uppercase tracking-widest" style={{ color: 'var(--bronze)' }}>
-              Nritya Bharathanjali 2026
-            </span>
-          </div>
+          <img src="/Images/msn_logo_flat_R (1).png" alt="M.S. Natyakshetra Logo" className="h-12 w-auto object-contain" />
         </a>
 
         <nav className="flex items-center gap-4 sm:gap-6">

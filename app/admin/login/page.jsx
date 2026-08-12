@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
     <div className="py-16 px-4 max-w-md mx-auto" style={{ background: 'var(--ivory)' }}>
       <div className="card-gold-accent p-8 space-y-6">
         <div className="text-center">
-          <img src="/assets/logo_red.png" alt="Logo" className="h-16 mx-auto mb-2 object-contain" />
+          <img src="/Images/msn_logo_flat_R (1).png" alt="Logo" className="h-16 mx-auto mb-2 object-contain" />
           <p className="eyebrow mb-1">RESTRICTED ACCESS</p>
           <h2 className="font-serif-display text-3xl font-bold" style={{ color: 'var(--maroon)' }}>
             Admin Panel Login

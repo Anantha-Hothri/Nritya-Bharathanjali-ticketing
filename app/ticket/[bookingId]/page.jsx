@@ -46,7 +46,7 @@ export default async function ETicketPage({ params }) {
         <span className="text-2xl">🎉</span>
         <h2 className="font-serif-display text-2xl font-bold">Booking Confirmed & E-Ticket Issued!</h2>
         <p className="text-xs opacity-90">
-          A copy of this e-ticket has been dispatched to <strong>{booking.whatsapp}</strong> (WhatsApp) and <strong>{booking.email}</strong>.
+          Your e-ticket is generated and accessible directly in this application. Present the QR code below at the entry gate.
         </p>
       </div>
 
@@ -54,7 +54,7 @@ export default async function ETicketPage({ params }) {
       <div id="e-ticket-card" className="card-gold-accent overflow-hidden border-2 border-gold shadow-2xl bg-white-warm">
         {/* Ticket Header Banner */}
         <div style={{ background: 'var(--maroon)', color: 'var(--ivory)' }} className="p-6 text-center border-b-2 border-gold relative">
-          <img src="/assets/logo_red.png" alt="Emblem" className="h-14 mx-auto mb-2 object-contain brightness-200" />
+          <img src="/Images/msn_logo_flat_R (1).png" alt="Emblem" className="h-14 mx-auto mb-2 object-contain" />
           <p className="eyebrow text-gold-light mb-1">M.S. NATYAKSHETRA OFFICIAL E-TICKET</p>
           <h1 className="font-serif-display text-3xl font-bold text-ivory">
             Nritya Bharathanjali 2026

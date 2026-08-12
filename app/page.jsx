@@ -103,10 +103,10 @@ export default function EventLandingPage() {
       {/* Poster & Production Overview Section */}
       <section id="event-details" className="py-16 px-6 sm:px-10 bg-cream relative">
         <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
-          
-          {/* Temple Arch Poster Display */}
+
+          {/* Poster Display */}
           <div className="md:col-span-5 relative">
-            <div className="temple-arch border-4 border-gold overflow-hidden shadow-2xl bg-ivory">
+            <div className="rounded-xl border-4 border-gold overflow-hidden shadow-2xl bg-ivory">
               <img
                 src="/Images/poster.jpeg"
                 alt="Nritya Bharathanjali Skanda Event Poster"
@@ -131,8 +131,8 @@ export default function EventLandingPage() {
             </div>
 
             <p className="text-xl leading-relaxed text-ink-soft">
-              Celebrate the divine splendor of Lord Murugan through an enchanting evening of classical Bharatanatyam. 
-              Featuring over 100 accomplished dancers from M.S. Natyakshetra, <strong>Nritya Bharathanjali 2026</strong> combines 
+              Celebrate the divine splendor of Lord Murugan through an enchanting evening of classical Bharatanatyam.
+              Featuring over 100 accomplished dancers from M.S. Natyakshetra, <strong>Nritya Bharathanjali 2026</strong> combines
               soul-stirring live Carnatic orchestration, exquisite traditional costuming, and grand stage choreography.
             </p>
 
@@ -162,7 +162,7 @@ export default function EventLandingPage() {
         <div className="text-center mb-12">
           <p className="eyebrow mb-2">CULTURAL HERITAGE IN MOTION</p>
           <h2 className="font-serif-display text-4xl sm:text-5xl font-semibold text-maroon">
-            Glimpses of M.S. Natyakshetra Productions
+            Glimpses of Skanda Production 2026
           </h2>
           <div className="flex justify-center gap-2 mt-4">
             <img src="/assets/final.png" className="w-6 h-6 flame object-contain" alt="" />
@@ -171,21 +171,20 @@ export default function EventLandingPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {galleryImages.map((img, idx) => (
-            <div key={idx} className="card-gold-accent overflow-hidden group shadow-md hover:shadow-2xl transition-all">
-              <div className="aspect-[4/3] overflow-hidden relative">
-                <img
-                  src={img.src}
-                  alt={img.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+        <div className="overflow-hidden w-full relative py-4">
+          <div className="flex gap-6 w-max animate-marquee hover:[animation-play-state:paused]">
+            {[...galleryImages, ...galleryImages].map((img, idx) => (
+              <div key={idx} className="shrink-0 w-72 sm:w-80 md:w-96 card-gold-accent overflow-hidden group shadow-md hover:shadow-2xl transition-all">
+                <div className="aspect-[3/4] overflow-hidden relative">
+                  <img
+                    src={img.src}
+                    alt={img.title}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
               </div>
-              <div className="p-4 bg-cream text-center border-t border-gold/30">
-                <span className="font-marcellus text-base text-maroon font-semibold">{img.title}</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
     </div>
