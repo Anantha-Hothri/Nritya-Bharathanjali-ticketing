@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
-  "buildCommand": "DATABASE_URL=${DATABASE_URL:-\"file:./dev.db\"} npx prisma generate && DATABASE_URL=${DATABASE_URL:-\"file:./dev.db\"} npx prisma db push && node prisma/seed.js && next build"
+  "buildCommand": "export DATABASE_URL=\"${DATABASE_URL:-file:./dev.db}\" && npx prisma generate && npx prisma db push && node prisma/seed.js && next build"
 }
 
