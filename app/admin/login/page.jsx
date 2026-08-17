@@ -26,6 +26,7 @@ export default function AdminLoginPage() {
       if (data.success) {
         sessionStorage.setItem('skanda_admin_session', JSON.stringify(data.user));
         router.push('/admin/dashboard');
+        router.refresh();
       } else {
         setError(data.error || 'Invalid credentials.');
       }

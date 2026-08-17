@@ -1,6 +1,15 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function EventLandingPage() {
+  const [capacityInfo, setCapacityInfo] = useState({
+    totalCapacity: 600,
+    remainingTickets: 600,
+    isSoldOut: false,
+  });
+
   const galleryImages = [
     { src: '/Images/026df52f-e772-4e0e-94d7-147de145daf9.jpeg', title: 'Bharatanatyam Expression' },
     { src: '/Images/6be26a49-8b06-4a0a-909e-8bf547be69cc.jpeg', title: 'Classical Abhinaya' },
@@ -9,6 +18,24 @@ export default function EventLandingPage() {
     { src: '/Images/a10a5e59-ae07-42c9-bea5-8b4cb1dc7806.jpeg', title: 'Stage Choreography' },
     { src: '/Images/ccf6b6cd-a947-4d79-a8cf-f115d4162898.jpeg', title: 'Temple Traditions' },
   ];
+
+  useEffect(() => {
+    fetchCapacity();
+  }, []);
+
+  const fetchCapacity = async () => {
+    try {
+      const res = await fetch('/api/booking/capacity');
+      const data = await res.json();
+      if (data.success) {
+        setCapacityInfo(data);
+      }
+    } catch (e) {
+      console.error('Error fetching capacity:', e);
+    }
+  };
+
+  const { isSoldOut, remainingTickets } = capacityInfo;
 
   return (
     <div className="relative overflow-hidden" style={{ background: 'var(--ivory)' }}>
@@ -19,6 +46,17 @@ export default function EventLandingPage() {
         aria-hidden="true"
         className="rangoli-bg spin-slow absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] opacity-15 pointer-events-none"
       />
+
+      {/* SOLD OUT / CAPACITY ANNOUNCEMENT BANNER */}
+      {isSoldOut ? (
+        <div className="bg-red-800 text-white py-3 px-4 text-center font-bold text-sm tracking-wider uppercase shadow-md relative z-20">
+          🔒 BOOKINGS CLOSED — SOLD OUT! Maximum event capacity has been reached.
+        </div>
+      ) : remainingTickets < 50 ? (
+        <div className="bg-amber-800 text-gold-pale py-2.5 px-4 text-center font-bold text-xs tracking-wider uppercase shadow-md relative z-20">
+          ⚠️ LIMITED SEATS REMAINING! Seats are filling fast.
+        </div>
+      ) : null}
 
       {/* Hero Section */}
       <section className="relative pt-12 pb-16 px-6 sm:px-10 text-center max-w-[1440px] mx-auto z-10">
@@ -91,10 +129,23 @@ export default function EventLandingPage() {
 
         {/* Primary CTA */}
         <div className="mt-10 flex flex-col sm:flex-row gap-5 justify-center items-center">
-          <a href="/booking/login" className="luxe-button luxe-button-solid text-lg px-10 py-4 shadow-xl">
-            BOOK TICKETS NOW &rarr;
-          </a>
-          <a href="#event-details" className="luxe-button luxe-button-outline text-lg px-10 py-4">
+          {isSoldOut ? (
+            <button
+              disabled
+              className="px-10 py-4 text-base font-bold uppercase rounded bg-red-900 text-white shadow-lg cursor-not-allowed opacity-90"
+            >
+              🔒 BOOKINGS CLOSED - SOLD OUT
+            </button>
+          ) : (
+            <Link href="/booking/login" className="luxe-button luxe-button-solid text-lg px-10 py-4 shadow-xl">
+              BOOK TICKETS NOW &rarr;
+            </Link>
+          )}
+
+          <Link href="/booking/my-bookings" className="luxe-button luxe-button-outline text-lg px-8 py-4">
+            📁 MY BOOKINGS & RECEIPTS &rarr;
+          </Link>
+          <a href="#event-details" className="text-sm font-bold text-maroon hover:underline px-4 py-2">
             EXPLORE PRODUCTION &rarr;
           </a>
         </div>
@@ -138,19 +189,26 @@ export default function EventLandingPage() {
 
             <div className="p-6 rounded-lg border border-gold/40 bg-white-warm space-y-3 shadow-sm">
               <h3 className="font-marcellus text-xl font-semibold text-maroon flex items-center gap-2">
-                <span>🏵️</span> Audience & Seating Allocation Rules
+                <span>🏵️</span> Event Entry & Ticket Guidelines
               </h3>
               <ul className="space-y-2.5 text-base text-ink-soft list-disc list-inside">
-                <li><strong>MSN Students & Parents:</strong> Use your designated Batch Code given by your instructor to unlock pre-allocated batch rows (Minimum 3 tickets per booking).</li>
-                <li><strong>External Attendees:</strong> Book directly from available external seating allocations (Minimum 1 ticket per booking).</li>
-                <li>Auditorium seating rows are strictly pre-allocated by the Admin team to ensure smooth family and batch seating.</li>
+                <li><strong>Limited Venue Capacity:</strong> Book early to secure your seats for the event.</li>
+                <li><strong>General Admission:</strong> Open entry for all attendees with a valid booking e-ticket.</li>
+                <li><strong>Instant Digital E-Ticket:</strong> Verified digital booking receipt with entry QR code issued upon payment.</li>
+                <li><strong>Multiple Tickets:</strong> Easily book single or multiple tickets in a single checkout.</li>
               </ul>
             </div>
 
             <div className="pt-4">
-              <a href="/booking/login" className="luxe-button luxe-button-solid px-10 py-4 text-base">
-                PROCEED TO TICKET BOOKING &rarr;
-              </a>
+              {isSoldOut ? (
+                <button disabled className="px-8 py-4 font-bold bg-red-900 text-white rounded cursor-not-allowed opacity-90">
+                  🔒 BOOKINGS CLOSED - SOLD OUT
+                </button>
+              ) : (
+                <Link href="/booking/login" className="luxe-button luxe-button-solid px-10 py-4 text-base">
+                  PROCEED TO TICKET BOOKING &rarr;
+                </Link>
+              )}
             </div>
           </div>
 

@@ -16,48 +16,23 @@ model AdminUser {
   createdAt    DateTime @default(now())
 }
 
-model BatchAllocation {
-  id            String   @id @default(uuid())
-  batchName     String
-  batchCode     String   @unique
-  assignedRows  String   // JSON string of rows e.g. ["Row A", "Row B", "Row C"]
-  capacity      Int      // Total allocated tickets for this batch
-  bookedCount   Int      @default(0)
-  ticketPrice   Float    @default(500.0) // Configurable placeholder ticket price
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-model ExternalAllocation {
-  id            String   @id @default(uuid())
-  rowName       String   @unique
-  capacity      Int      // Allocated tickets for external attendees in this row
-  bookedCount   Int      @default(0)
-  ticketPrice   Float    @default(500.0) // Configurable placeholder ticket price
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
 model Booking {
-  id              String   @id @default(uuid())
-  bookingId       String   @unique // Public unique reference e.g. SKD-84920
-  buyerType       String   // "MSN" | "EXTERNAL"
-  customerName    String
-  phone           String
-  isWhatsappSame  Boolean  @default(true)
-  whatsapp        String
-  email           String
-  studentName     String?  // Applicable for MSN
-  batchName       String?  // Applicable for MSN
-  batchCode       String?  // Applicable for MSN
-  allocatedRow    String   // Assigned row e.g. "Row A, Row B"
-  ticketQty       Int
-  totalAmount     Float
-  paymentStatus   String   @default("PENDING") // "PENDING" | "PAID" | "FAILED"
-  paymentId       String?  // Razorpay payment ID
-  razorpayOrderId String?  // Razorpay order ID
-  bookingDate     DateTime @default(now())
-  tickets         Ticket[]
+  id                    String   @id @default(uuid())
+  bookingId             String   @unique // Public unique reference e.g. SKD-84920
+  buyerType             String   @default("EXTERNAL") // "MSN" | "EXTERNAL"
+  customerName          String
+  studentName           String?  // MSN Student Name (Child's Name for MSN Parent/Student bookings)
+  phone                 String
+  isWhatsappSame        Boolean  @default(true)
+  whatsapp              String
+  email                 String
+  ticketQty             Int
+  totalAmount           Float
+  paymentStatus         String   @default("PENDING") // "PENDING" | "PAID" | "FAILED"
+  paymentId             String?  // PhonePe Provider Reference ID
+  merchantTransactionId String?  @unique // PhonePe Merchant Transaction ID
+  bookingDate           DateTime @default(now())
+  tickets               Ticket[]
 }
 
 model Ticket {
