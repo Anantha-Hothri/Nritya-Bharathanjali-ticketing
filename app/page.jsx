@@ -60,10 +60,6 @@ export default function EventLandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-12 pb-16 px-6 sm:px-10 text-center max-w-[1440px] mx-auto z-10">
-        <div className="flex justify-center mb-4">
-          <img src="/Images/msn_logo_circle_R.png" alt="M.S. Natyakshetra Emblem" className="h-20 w-20 object-contain drop-shadow-md" />
-        </div>
-
         <p className="eyebrow mb-2">M.S. NATYAKSHETRA PRESENTS</p>
 
         <h1 className="font-serif-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-tight mb-4" style={{ color: 'var(--maroon)' }}>
@@ -194,7 +190,7 @@ export default function EventLandingPage() {
               <ul className="space-y-2.5 text-base text-ink-soft list-disc list-inside">
                 <li><strong>Limited Venue Capacity:</strong> Book early to secure your seats for the event.</li>
                 <li><strong>General Admission:</strong> Open entry for all attendees with a valid booking e-ticket.</li>
-                <li><strong>Instant Digital E-Ticket:</strong> Verified digital booking receipt with entry QR code issued upon payment.</li>
+                <li><strong>Instant Digital E-Ticket:</strong> Verified digital booking receipt issued upon payment.</li>
                 <li><strong>Multiple Tickets:</strong> Easily book single or multiple tickets in a single checkout.</li>
               </ul>
             </div>
