@@ -162,8 +162,8 @@ export default function PrivacyPolicyPage() {
               <p><strong>Organizer Name:</strong> MS Naatyakshetra</p>
               <p><strong>Full Address:</strong> 1, Jayaramreddy layout, 2nd Main, 3rd Cross A-Block, AECS Layout, Kundalahalli, Brookefield, Bengaluru, Karnataka 560037</p>
               <p><strong>Grievance Officer / Contact Person:</strong> Grievance Officer, MS Naatyakshetra Desk</p>
-              <p><strong>Contact Email:</strong> NIL</p>
-              <p><strong>Support Phone:</strong> NIL</p>
+              <p><strong>Contact Email:</strong> <a href="mailto:msnatyalaya@gmail.com" className="underline hover:opacity-80">msnatyalaya@gmail.com</a></p>
+              <p><strong>Support Phone:</strong> <a href="tel:+919663680808" className="underline hover:opacity-80">+91 96636 80808</a></p>
               <p><strong>Jurisdiction:</strong> Courts of Bengaluru, Karnataka, India</p>
             </div>
           </section>

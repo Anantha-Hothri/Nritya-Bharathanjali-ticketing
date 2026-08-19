@@ -125,8 +125,8 @@ export default function RefundPolicyPage() {
             <div className="mt-4 p-4 rounded-lg border text-xs space-y-1" style={{ background: 'var(--sandal)', borderColor: 'var(--gold)' }}>
               <p><strong>Organizer Name:</strong> MS Naatyakshetra</p>
               <p><strong>Full Address:</strong> 1, Jayaramreddy layout, 2nd Main, 3rd Cross A-Block, AECS Layout, Kundalahalli, Brookefield, Bengaluru, Karnataka 560037</p>
-              <p><strong>Contact Email:</strong> NIL</p>
-              <p><strong>Support Phone:</strong> NIL</p>
+              <p><strong>Contact Email:</strong> <a href="mailto:msnatyalaya@gmail.com" className="underline hover:opacity-80">msnatyalaya@gmail.com</a></p>
+              <p><strong>Support Phone:</strong> <a href="tel:+919663680808" className="underline hover:opacity-80">+91 96636 80808</a></p>
             </div>
           </section>
         </div>
