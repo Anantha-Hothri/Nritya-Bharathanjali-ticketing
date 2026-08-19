@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -19,10 +20,34 @@ export default function Footer() {
           <span>Secure Bookings</span>
         </div>
 
+        {/* Policy Links Section */}
+        <div className="flex justify-center flex-wrap gap-x-6 gap-y-2 text-xs font-medium mb-6 pt-4 border-t border-[var(--gold)]/30 max-w-2xl mx-auto" style={{ color: 'var(--gold-pale)' }}>
+          <Link href="/terms-and-conditions" className="hover:underline transition-colors hover:text-white">
+            Terms &amp; Conditions
+          </Link>
+          <span className="opacity-40">•</span>
+          <Link href="/privacy-policy" className="hover:underline transition-colors hover:text-white">
+            Privacy Policy
+          </Link>
+          <span className="opacity-40">•</span>
+          <Link href="/refund-policy" className="hover:underline transition-colors hover:text-white">
+            Refund &amp; Cancellation
+          </Link>
+          <span className="opacity-40">•</span>
+          <Link href="/return-policy" className="hover:underline transition-colors hover:text-white">
+            Return Policy
+          </Link>
+          <span className="opacity-40">•</span>
+          <Link href="/shipping-policy" className="hover:underline transition-colors hover:text-white">
+            Shipping &amp; Delivery
+          </Link>
+        </div>
+
         <p className="text-xs opacity-75" style={{ color: 'var(--gold-pale)' }}>
-          &copy; 2026 M.S. Natyakshetra. All Rights Reserved.
+          &copy; 2026 MS Naatyakshetra. All Rights Reserved.
         </p>
       </div>
     </footer>
   );
 }
+
