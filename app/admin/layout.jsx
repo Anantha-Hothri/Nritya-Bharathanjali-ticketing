@@ -1,4 +1,4 @@
-import AdminNavbar from '../../components/AdminNavbar';
+import AdminLayoutClient from '../../components/AdminLayoutClient';
 
 export const metadata = {
   title: 'Admin Control Panel | Nritya Bharathanjali 2026',
@@ -6,10 +6,5 @@ export const metadata = {
 };
 
 export default function AdminLayout({ children }) {
-  return (
-    <div className="min-h-screen flex flex-col bg-[#FDFBF7]">
-      <AdminNavbar />
-      <main className="flex-grow">{children}</main>
-    </div>
-  );
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }

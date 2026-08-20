@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 import crypto from 'crypto';
+import QRCode from 'qrcode';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,32 +89,12 @@ export async function POST(request) {
       },
     });
 
-    // Prepare PhonePe Payment Initiation Payload
-    const merchantId = process.env.PHONEPE_MERCHANT_ID || 'PGTESTPAYUAT';
-    const saltKey = process.env.PHONEPE_SALT_KEY || '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
-    const saltIndex = process.env.PHONEPE_SALT_INDEX || '1';
-
-    const origin = request.headers.get('origin') || 'http://localhost:3000';
-    const amountInPaise = Math.round(totalAmount * 100);
-
-    const payPayload = {
-      merchantId,
-      merchantTransactionId,
-      merchantUserId: `MUID_${phone.trim()}`,
-      amount: amountInPaise,
-      redirectUrl: `${origin}/api/payment/verify?merchantTransactionId=${merchantTransactionId}`,
-      redirectMode: 'POST',
-      callbackUrl: `${origin}/api/payment/callback`,
-      mobileNumber: phone.trim(),
-      paymentInstrument: {
-        type: 'PAY_PAGE',
-      },
-    };
-
-    const base64Payload = Buffer.from(JSON.stringify(payPayload)).toString('base64');
-    const stringToHash = base64Payload + '/pg/v1/pay' + saltKey;
-    const sha256Hash = crypto.createHash('sha256').update(stringToHash).digest('hex');
-    const checksum = `${sha256Hash}###${saltIndex}`;
+    // Build UPI Deep Link & QR Code
+    const upiId = process.env.UPI_ID || 'placeholder@upi';
+    const upiName = encodeURIComponent(process.env.UPI_DISPLAY_NAME || 'M.S. Naatyakshetra');
+    const upiNote = encodeURIComponent('Skanda2026 Ticket');
+    const upiDeepLink = `upi://pay?pa=${upiId}&pn=${upiName}&am=${totalAmount}&tr=${merchantTransactionId}&tn=${upiNote}&cu=INR`;
+    const qrCodeDataUrl = await QRCode.toDataURL(upiDeepLink, { width: 300, margin: 2 });
 
     return NextResponse.json({
       success: true,
@@ -129,12 +110,12 @@ export async function POST(request) {
         totalAmount: newBooking.totalAmount,
         merchantTransactionId: newBooking.merchantTransactionId,
       },
-      phonepe: {
-        merchantId,
-        merchantTransactionId,
-        base64Payload,
-        checksum,
-        hostUrl: process.env.PHONEPE_HOST_URL || 'https://api-preprod.phonepe.com/apis/pg-sandbox',
+      upi: {
+        upiId,
+        upiDeepLink,
+        qrCodeDataUrl,
+        amount: totalAmount,
+        reference: merchantTransactionId,
       },
     });
   } catch (error) {

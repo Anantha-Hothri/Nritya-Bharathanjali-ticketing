@@ -183,7 +183,7 @@ export default function BuyerTypeSelectPage() {
             </div>
 
             <h2 className="font-serif-display text-2xl font-semibold text-maroon mb-2">
-              MSN Student / Parent
+              MSN
             </h2>
 
             <p className="text-xs text-ink-soft mb-4 leading-relaxed">

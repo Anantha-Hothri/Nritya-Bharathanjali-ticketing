@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import MiniSeatingChart from '../../../components/MiniSeatingChart';
 
 export default function MyBookingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,7 +11,6 @@ export default function MyBookingsPage() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
 
-  // Check for auto-search term from existing booking session on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem('skanda_customer_login') || sessionStorage.getItem('skanda_customer_login');
@@ -58,15 +58,15 @@ export default function MyBookingsPage() {
   };
 
   return (
-    <div className="py-12 px-6 sm:px-10 max-w-4xl mx-auto" style={{ background: 'var(--ivory)' }}>
+    <div className="py-12 px-6 sm:px-10 max-w-6xl mx-auto" style={{ background: 'var(--ivory)' }}>
       {/* Page Header */}
       <div className="text-center mb-8">
-        <p className="eyebrow mb-1">RECEIPT RETRIEVAL PORTAL</p>
+        <p className="eyebrow mb-1">RECEIPT & SEAT RETRIEVAL PORTAL</p>
         <h1 className="font-serif-display text-4xl font-bold" style={{ color: 'var(--maroon)' }}>
-          My Bookings & Acknowledgement Receipts
+          My Bookings & Seat Allocation Receipts
         </h1>
         <p className="text-sm text-ink-soft mt-1">
-          Enter your registered Mobile Number, Email, or Booking Reference ID (SKD-XXXXX) to view and download your official receipts.
+          Enter your registered Mobile Number, Email, or Booking Reference ID (SKD-XXXXX) to view allocated seats and download official receipts.
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export default function MyBookingsPage() {
           </div>
         </div>
       ) : bookings.length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex justify-between items-center pb-2 border-b border-gold/30">
             <h3 className="font-serif-display text-2xl font-bold text-maroon">
               Confirmed Booking Receipts ({bookings.length})
@@ -133,62 +133,95 @@ export default function MyBookingsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {bookings.map((b) => (
-              <div key={b.id} className="card-gold-accent overflow-hidden border border-gold flex flex-col justify-between shadow-md hover:shadow-xl transition-all bg-[#FDFBF7]">
-                {/* Receipt Card Header */}
-                <div className="p-4 bg-cream border-b border-gold/40 flex justify-between items-center">
+            {bookings.map((b) => {
+              const isAllocated = b.allocationStatus === 'ALLOCATED' && b.allocatedSeats;
+              return (
+                <div key={b.id} className="card-gold-accent overflow-hidden border-2 border-gold shadow-lg bg-[#FDFBF7] space-y-4 p-5 flex flex-col justify-between">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-bronze block">BOOKING REFERENCE</span>
-                    <h4 className="font-mono text-lg font-extrabold text-maroon">{b.bookingId}</h4>
-                  </div>
-                  <span className="px-2.5 py-1 text-[11px] font-bold bg-sandal text-maroon border border-gold/60 rounded uppercase tracking-wider">
-                    ✓ VERIFIED {b.paymentStatus}
-                  </span>
-                </div>
-
-                {/* Receipt Body Info */}
-                <div className="p-5 space-y-3 text-xs">
-                  <div className="grid grid-cols-2 gap-3 border-b border-gold/20 pb-3">
-                    <div>
-                      <span className="text-ink-soft block uppercase text-[10px]">BUYER NAME</span>
-                      <strong className="text-ink text-sm block">{b.customerName}</strong>
-                      <span className="text-[10px] text-bronze font-semibold">
-                        {b.buyerType === 'MSN' ? 'MSN Student / Parent' : 'External Attendee'}
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gold/30 pb-3 mb-4">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-bronze block">BOOKING REFERENCE</span>
+                        <h4 className="font-mono text-xl font-extrabold text-maroon">{b.bookingId}</h4>
+                      </div>
+                      <span className={`px-3 py-1 text-xs font-bold rounded uppercase tracking-wider ${
+                        isAllocated
+                          ? 'bg-emerald-800 text-white shadow-sm'
+                          : b.paymentStatus === 'PAID'
+                          ? 'bg-sandal text-maroon border border-gold/60 shadow-sm'
+                          : 'bg-amber-100 text-amber-900 border border-amber-300'
+                      }`}>
+                        {isAllocated
+                          ? '✓ Seats Allocated!'
+                          : b.paymentStatus === 'PAID'
+                          ? '✓ Payment Verified'
+                          : 'Pending...'}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-ink-soft block uppercase text-[10px]">TICKETS & AMOUNT</span>
-                      <strong className="text-maroon font-num text-sm block">
-                        {b.ticketQty} {b.ticketQty === 1 ? 'Ticket' : 'Tickets'}
-                      </strong>
-                      <span className="font-num text-ink-soft font-bold">₹{b.totalAmount.toLocaleString()}</span>
+
+                    {/* Seat Allocation Badge */}
+                    <div className={`p-3.5 rounded-lg border mb-4 ${
+                      isAllocated
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                        : 'bg-amber-50 border-amber-300 text-amber-950'
+                    }`}>
+                      <div className="text-[10px] uppercase font-bold text-bronze block">SEAT ALLOCATION STATUS</div>
+                      {isAllocated ? (
+                        <div className="mt-1">
+                          <strong className="font-mono text-lg text-emerald-900 block">
+                            Your Seats: {b.allocatedSeats}
+                          </strong>
+                          <span className="text-[11px] text-emerald-700 block mt-0.5">
+                            Assigned & Confirmed by Organizers
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-1 text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+                          <span>⏳</span>
+                          <span>Seat allocation pending. You will be notified shortly via WhatsApp and Email.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Booking Info */}
+                    <div className="grid grid-cols-2 gap-3 text-xs bg-white/70 p-3.5 rounded border border-gold/30">
+                      <div>
+                        <span className="text-ink-soft block uppercase text-[10px]">CUSTOMER NAME</span>
+                        <strong className="text-ink text-xs font-semibold truncate block">{b.customerName}</strong>
+                      </div>
+
+                      <div>
+                        <span className="text-ink-soft block uppercase text-[10px]">TICKETS</span>
+                        <strong className="text-maroon font-num text-xs font-semibold block">
+                          {b.ticketQty} {b.ticketQty === 1 ? 'Ticket' : 'Tickets'}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span className="text-ink-soft block uppercase text-[10px]">TOTAL AMOUNT</span>
+                        <strong className="text-maroon font-num text-xs font-semibold block">₹{b.totalAmount}</strong>
+                      </div>
+
+                      <div>
+                        <span className="text-ink-soft block uppercase text-[10px]">EVENT DATE</span>
+                        <strong className="text-maroon text-xs block">Sept 26, 2026</strong>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-[11px]">
-                    <div>
-                      <span className="text-ink-soft block uppercase text-[10px]">EVENT DATE</span>
-                      <span className="text-maroon font-semibold">Sept 26, 2026</span>
-                    </div>
-                    <div>
-                      <span className="text-ink-soft block uppercase text-[10px]">BOOKED ON</span>
-                      <span className="text-ink font-mono">{new Date(b.bookingDate).toLocaleDateString('en-IN')}</span>
-                    </div>
+                  {/* Receipt CTA */}
+                  <div className="pt-2 mt-auto">
+                    <Link
+                      href={`/ticket/${b.bookingId}`}
+                      className="w-full luxe-button luxe-button-solid py-2.5 text-xs inline-flex items-center justify-center gap-2"
+                    >
+                      <span>📄 VIEW & DOWNLOAD RECEIPT PDF</span>
+                      <span>&rarr;</span>
+                    </Link>
                   </div>
                 </div>
-
-                {/* Receipt CTA */}
-                <div className="p-4 bg-sandal/30 border-t border-gold/30 text-center">
-                  <Link
-                    href={`/ticket/${b.bookingId}`}
-                    className="w-full luxe-button luxe-button-solid py-2.5 text-xs inline-flex items-center justify-center gap-2"
-                  >
-                    <span>📄 VIEW & DOWNLOAD RECEIPT PDF</span>
-                    <span>&rarr;</span>
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : null}

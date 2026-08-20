@@ -36,3 +36,7 @@ next-env.d.ts
 # Database
 /prisma/dev.db
 /prisma/dev.db-journal
+
+# WhatsApp Web Session & Cache
+.wwebjs_auth/
+.wwebjs_cache/

@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import BookingDrawer from '../../../components/BookingDrawer';
+import SeatingChartModal from '../../../components/SeatingChartModal';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-
-  // Data states
   const [metrics, setMetrics] = useState({
     totalCapacity: 600,
     remainingTickets: 600,
@@ -27,6 +26,73 @@ export default function AdminDashboardPage() {
   const [bookings, setBookings] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [allocationFilter, setAllocationFilter] = useState('ALL'); // 'ALL' | 'ALLOCATED' | 'NOT_ALLOCATED'
+  const [paymentFilter, setPaymentFilter] = useState('ALL'); // 'ALL' | 'PAID' | 'PENDING'
+
+  // Selected Booking Drawer & Modal state
+  const [activeBooking, setActiveBooking] = useState(null);
+  const [showSeatingChart, setShowSeatingChart] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Add Manual Person Modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    buyerType: 'MSN',
+    customerName: '',
+    studentName: '',
+    phone: '',
+    whatsapp: '',
+    isWhatsappSame: true,
+    email: '',
+    ticketQty: 1,
+    totalAmount: 850,
+    paymentStatus: 'PAID',
+    teamCode: 'General',
+  });
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [addError, setAddError] = useState('');
+
+  const handleAddPersonSubmit = async (e) => {
+    e.preventDefault();
+    if (!addFormData.customerName || !addFormData.phone || !addFormData.email) {
+      setAddError('Please fill in Customer Name, Phone, and Email.');
+      return;
+    }
+    setAddSubmitting(true);
+    setAddError('');
+    try {
+      const res = await fetch('/api/admin/create-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addFormData),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`✅ Customer ${data.booking.customerName} added successfully (${data.booking.bookingId})!`);
+        setShowAddModal(false);
+        setAddFormData({
+          buyerType: 'MSN',
+          customerName: '',
+          studentName: '',
+          phone: '',
+          whatsapp: '',
+          isWhatsappSame: true,
+          email: '',
+          ticketQty: 1,
+          totalAmount: 850,
+          paymentStatus: 'PAID',
+          teamCode: 'General',
+        });
+        loadAllAdminData();
+      } else {
+        setAddError(data.error || 'Failed to add customer record.');
+      }
+    } catch (err) {
+      setAddError('Network error adding customer booking record.');
+    } finally {
+      setAddSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     loadAllAdminData();
@@ -58,16 +124,64 @@ export default function AdminDashboardPage() {
     window.open('/api/admin/export-excel', '_blank');
   };
 
-  // Helper to remove bracket suffixes like (MSN Parent) or (External)
   const cleanName = (name) => {
     if (!name) return '';
     return name.replace(/\s*\([^)]*\)/g, '').trim();
   };
 
-  // Filter logic for Live Bookings (Includes searching by MSN Student Name)
+  const triggerToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 5000);
+  };
+
+  // Row click opens drawer
+  const handleRowClick = (booking) => {
+    setActiveBooking(booking);
+  };
+
+  const handleOpenSeatingChartFromDrawer = (booking) => {
+    setActiveBooking(booking);
+    setShowSeatingChart(true);
+  };
+
+  const handleSeatAllocationSuccess = (updatedBooking, allocatedSeatsList) => {
+    // Update local bookings state immediately
+    const nextBookingsList = bookings.map((b) => (b.id === updatedBooking.id ? updatedBooking : b));
+    setBookings(nextBookingsList);
+
+    // Find next unallocated paid booking
+    const remainingUnallocated = nextBookingsList.filter(
+      (b) => b.id !== updatedBooking.id && b.paymentStatus === 'PAID' && !(b.allocationStatus === 'ALLOCATED' && b.allocatedSeats)
+    );
+
+    if (remainingUnallocated.length > 0) {
+      const nextPerson = remainingUnallocated[0];
+      setActiveBooking(nextPerson);
+      setShowSeatingChart(true);
+      triggerToast(
+        `✅ Seats (${allocatedSeatsList.join(', ')}) allocated to ${cleanName(updatedBooking.customerName)}! Now allocating for ${cleanName(nextPerson.customerName)} (${nextPerson.ticketQty} seats).`
+      );
+    } else {
+      setActiveBooking(null);
+      setShowSeatingChart(false);
+      triggerToast(`🎉 Seats (${allocatedSeatsList.join(', ')}) allocated! All paid bookings are fully allocated.`);
+    }
+
+    loadAllAdminData();
+  };
+
+  // Filtering Logic
   const filteredBookings = bookings.filter((b) => {
     if (categoryFilter !== 'ALL' && b.buyerType !== categoryFilter) {
       return false;
+    }
+    if (paymentFilter !== 'ALL' && b.paymentStatus !== paymentFilter) {
+      return false;
+    }
+    if (allocationFilter !== 'ALL') {
+      const isAllocated = b.allocationStatus === 'ALLOCATED' && b.allocatedSeats;
+      if (allocationFilter === 'ALLOCATED' && !isAllocated) return false;
+      if (allocationFilter === 'NOT_ALLOCATED' && isAllocated) return false;
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -76,7 +190,8 @@ export default function AdminDashboardPage() {
       const matchPhone = b.phone.includes(q);
       const matchEmail = (b.email || '').toLowerCase().includes(q);
       const matchId = b.bookingId.toLowerCase().includes(q);
-      return matchName || matchStudent || matchPhone || matchEmail || matchId;
+      const matchSeats = (b.allocatedSeats || '').toLowerCase().includes(q);
+      return matchName || matchStudent || matchPhone || matchEmail || matchId || matchSeats;
     }
     return true;
   });
@@ -85,13 +200,6 @@ export default function AdminDashboardPage() {
   let filteredTickets = 0;
   let filteredCollections = 0;
   let filteredPaidBuyers = 0;
-  let pendingBookingsCount = 0;
-
-  bookings.forEach((b) => {
-    if (b.paymentStatus === 'PENDING') {
-      pendingBookingsCount += 1;
-    }
-  });
 
   filteredBookings.forEach((b) => {
     if (b.paymentStatus === 'PAID') {
@@ -101,205 +209,88 @@ export default function AdminDashboardPage() {
     }
   });
 
-  const totalCapacity = metrics.totalCapacity || 600;
-  const bookedTickets = metrics.totalTicketsBooked || 0;
-  const remainingTickets = metrics.remainingTickets !== undefined ? metrics.remainingTickets : Math.max(0, totalCapacity - bookedTickets);
-  const occupancyPct = Math.round((bookedTickets / totalCapacity) * 100);
-
   return (
-    <div className="py-8 px-6 sm:px-10 max-w-[1500px] mx-auto" style={{ background: 'var(--ivory)' }}>
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-gold/40">
-        <div>
-          <span className="eyebrow text-bronze">CONTROL CENTER</span>
-          <h1 className="font-serif-display text-4xl font-bold text-maroon">
-            Admin Live Bookings & Dashboard
-          </h1>
-          <p className="text-sm text-ink-soft">
-            Nritya Bharathanjali 2026 – Skanda Production • September 26, 2026 • <strong>600 Total Capacity</strong>
-          </p>
+    <div className="py-8 px-6 sm:px-10 max-w-[1600px] mx-auto min-h-screen">
+      {/* Toast Notification Alert */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-emerald-800 text-white px-6 py-3 rounded-lg shadow-2xl border-2 border-emerald-400 font-bold text-xs animate-bounce flex items-center gap-2">
+          <span>🎉</span>
+          <span>{toastMessage}</span>
+          <button onClick={() => setToastMessage('')} className="ml-3 text-white font-bold">✕</button>
         </div>
+      )}
 
-        {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setShowAnalytics(!showAnalytics)}
-            className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded border border-gold transition-all shadow-sm flex items-center gap-1.5 ${
-              showAnalytics
-                ? 'bg-maroon text-ivory border-maroon'
-                : 'bg-sandal text-maroon hover:bg-gold-pale'
-            }`}
-          >
-            📊 {showAnalytics ? 'Hide Analytics' : 'Show Analytics & Insights'}
-          </button>
-          <button
-            onClick={loadAllAdminData}
-            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded border border-gold bg-cream hover:bg-sandal text-maroon shadow-sm flex items-center gap-1.5"
-          >
-            🔄 Refresh Data
-          </button>
-          <button
-            onClick={handleExportExcel}
-            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded border border-gold bg-maroon text-ivory hover:bg-maroon-soft shadow-sm flex items-center gap-1.5"
-          >
-            📥 Export to Excel
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                await fetch('/api/admin/logout', { method: 'POST' });
-              } catch (e) {}
-              sessionStorage.removeItem('skanda_admin_session');
-              router.push('/admin/login');
-              router.refresh();
-            }}
-            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded bg-red-800 text-white hover:bg-red-900 shadow-sm"
-          >
-            🔒 Logout
-          </button>
-        </div>
-      </div>
+
 
       {loading ? (
         <div className="py-16 text-center text-ink-soft font-medium">
-          ⏳ Syncing live database metrics...
+          ⏳ Syncing live database metrics & seat records...
         </div>
       ) : (
         <div className="space-y-6">
-          {/* ================= OPTIONAL STATISTICAL ANALYTICS PANEL ================= */}
-          {showAnalytics && (
-            <div className="card-gold-accent p-6 space-y-6 bg-white-warm shadow-md border-2 border-gold animate-fadeIn">
-              <div className="flex justify-between items-center pb-3 border-b border-gold/30">
-                <div>
-                  <span className="eyebrow">STATISTICAL OBSERVATIONS</span>
-                  <h3 className="font-serif-display text-2xl font-bold text-maroon">
-                    Live Booking Analytics & Summary Insights
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setShowAnalytics(false)}
-                  className="text-xs font-bold text-ink-soft hover:text-maroon underline"
-                >
-                  Close Analytics ✕
-                </button>
-              </div>
-
-              {/* Top-Level Metric Cards Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                {/* 1. Total Revenue */}
-                <div className="p-4 rounded-lg bg-cream border border-gold text-center space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-bronze block">TOTAL REVENUE</span>
-                  <div className="font-num text-2xl font-bold text-maroon">
-                    ₹{metrics.totalCollections.toLocaleString()}
-                  </div>
-                  <span className="text-[10px] text-ink-soft block">Verified Online</span>
-                </div>
-
-                {/* 2. Total Tickets Booked */}
-                <div className="p-4 rounded-lg bg-cream border border-gold text-center space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-bronze block">TICKETS BOOKED</span>
-                  <div className="font-num text-2xl font-bold text-amber-900">
-                    {bookedTickets} / 600
-                  </div>
-                  <span className="text-[10px] text-ink-soft block">Confirmed Issued</span>
-                </div>
-
-                {/* 3. Remaining Tickets */}
-                <div className="p-4 rounded-lg bg-cream border border-gold text-center space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-bronze block">REMAINING TICKETS</span>
-                  <div className="font-num text-2xl font-bold text-emerald-900">
-                    {remainingTickets}
-                  </div>
-                  <span className="text-[10px] text-ink-soft block">Available Out of 600</span>
-                </div>
-
-                {/* 4. Paid Bookings */}
-                <div className="p-4 rounded-lg bg-cream border border-gold text-center space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-bronze block">PAID BOOKINGS</span>
-                  <div className="font-num text-2xl font-bold text-emerald-900">
-                    {metrics.totalPaidBookings}
-                  </div>
-                  <span className="text-[10px] text-ink-soft block">Successful Orders</span>
-                </div>
-
-                {/* 6. Total Bookings */}
-                <div className="p-4 rounded-lg bg-cream border border-gold text-center space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-bronze block">TOTAL ORDERS</span>
-                  <div className="font-num text-2xl font-bold text-maroon">
-                    {metrics.totalBookings}
-                  </div>
-                  <span className="text-[10px] text-ink-soft block">All Order Attempts</span>
-                </div>
-              </div>
-
-              {/* Visual Occupancy Bar & Category Share */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gold/30 items-center">
-                {/* Occupancy Rate Bar */}
-                <div className="md:col-span-2 space-y-2">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-maroon">🎟️ Event Capacity Occupancy Rate ({occupancyPct}%)</span>
-                    <span className="text-ink-soft font-mono">{bookedTickets} / 600 Tickets</span>
-                  </div>
-
-                  <div className="w-full h-5 bg-sandal/60 rounded-full overflow-hidden border border-gold flex">
-                    <div
-                      className="bg-gradient-to-r from-maroon to-maroon-soft h-full transition-all duration-1000 flex items-center justify-center text-ivory text-[10px] font-bold font-num"
-                      style={{ width: `${Math.min(100, occupancyPct)}%` }}
-                    >
-                      {occupancyPct > 5 ? `${occupancyPct}%` : ''}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Category Share Stats */}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-2.5 rounded bg-amber-50 border border-amber-200 text-center">
-                    <span className="font-bold text-amber-900 block text-[11px]">🎭 MSN Students</span>
-                    <strong className="font-num text-base text-amber-950">{metrics.msnTickets || 0}</strong> tickets
-                    <span className="block text-[10px] text-ink-soft">₹{(metrics.msnCollections || 0).toLocaleString()}</span>
-                  </div>
-
-                  <div className="p-2.5 rounded bg-blue-50 border border-blue-200 text-center">
-                    <span className="font-bold text-blue-900 block text-[11px]">🎟️ External Guests</span>
-                    <strong className="font-num text-base text-blue-950">{metrics.externalTickets || 0}</strong> tickets
-                    <span className="block text-[10px] text-ink-soft">₹{(metrics.externalCollections || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= MAIN LIVE BOOKINGS SEARCH & LEDGER TABLE ================= */}
-          {/* Filter Bar */}
-          <div className="card-gold-accent p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* ================= FILTER BAR ================= */}
+          <div className="card-gold-accent p-5 space-y-4 bg-white/80 shadow-md">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Search Query Input */}
-              <div className="w-full sm:w-1/2">
+              <div className="lg:col-span-1">
                 <label className="block text-xs font-bold uppercase text-bronze mb-1">
-                  🔍 Search Customer, Student/Child Name, Phone, Email, Ref ID:
+                  🔍 Search Customer / Seat ID / Phone:
                 </label>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search Customer, Student Name, Phone, Email..."
-                  className="input-luxe text-sm py-2"
+                  placeholder="Search Name, Student, Phone, Seats..."
+                  className="input-luxe text-xs py-2 w-full"
                 />
               </div>
 
-              {/* Category Filter */}
-              <div className="w-full sm:w-1/3">
+              {/* Seat Allocation Status Filter */}
+              <div>
                 <label className="block text-xs font-bold uppercase text-bronze mb-1">
-                  🏷️ Filter Attendee Category:
+                  🪑 Seat Allocation Status:
+                </label>
+                <select
+                  value={allocationFilter}
+                  onChange={(e) => setAllocationFilter(e.target.value)}
+                  className="input-luxe text-xs py-2 w-full"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="ALLOCATED">Seats Allocated ✅</option>
+                  <option value="NOT_ALLOCATED">Seats Not Allocated 🔲</option>
+                </select>
+              </div>
+
+              {/* Category Filter */}
+              <div>
+                <label className="block text-xs font-bold uppercase text-bronze mb-1">
+                  🏷️ Attendee Category:
                 </label>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="input-luxe text-sm py-2"
+                  className="input-luxe text-xs py-2 w-full"
                 >
                   <option value="ALL">All Categories</option>
-                  <option value="MSN">MSN Student / Parent (Min 3 Tickets)</option>
-                  <option value="EXTERNAL">External Attendee (Min 1 Ticket)</option>
+                  <option value="MSN">MSN</option>
+                  <option value="EXTERNAL">External Attendee</option>
+                </select>
+              </div>
+
+              {/* Payment Filter */}
+              <div>
+                <label className="block text-xs font-bold uppercase text-bronze mb-1">
+                  💳 Payment Status:
+                </label>
+                <select
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value)}
+                  className="input-luxe text-xs py-2 w-full"
+                >
+                  <option value="ALL">All Payments</option>
+                  <option value="PAID">Paid Only</option>
+                  <option value="UTR_SUBMITTED">Awaiting Manual Verification</option>
+                  <option value="PENDING">Pending Only</option>
                 </select>
               </div>
             </div>
@@ -323,18 +314,49 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Table with Dynamic Footer Summary Row */}
-          <div className="card-gold-accent p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-serif-display text-2xl font-semibold text-maroon">
-                Live Customer Bookings Ledger ({filteredBookings.length} Records)
-              </h3>
+          {/* ================= LEDGER TABLE ================= */}
+          <div className="card-gold-accent p-6 space-y-4 bg-white/90 shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif-display text-2xl font-semibold text-[#6B1A2B]">
+                  Live Customer Bookings Ledger ({filteredBookings.length} Records)
+                </h3>
+                <p className="text-xs text-ink-soft mt-0.5">
+                  💡 Click any row to view customer details and allocate seats on the interactive chart.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start sm:self-auto">
+                <button
+                  onClick={() => {
+                    setAddError('');
+                    setShowAddModal(true);
+                  }}
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded border border-[#D4AF37] bg-[#6B1A2B] text-white hover:bg-[#8B2338] shadow-md flex items-center gap-1.5 transition-all hover:scale-[1.02] cursor-pointer"
+                >
+                  <span>➕</span>
+                  <span>Add New Record</span>
+                </button>
+                <button
+                  onClick={loadAllAdminData}
+                  className="px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded border border-gold bg-cream hover:bg-sandal text-[#6B1A2B] shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  🔄 Refresh Data
+                </button>
+                <button
+                  onClick={handleExportExcel}
+                  className="px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded border border-gold bg-[#6B1A2B] text-ivory hover:bg-maroon-soft shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  📥 Export to Excel
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-maroon text-ivory font-marcellus uppercase tracking-wider">
+                  <tr className="bg-[#6B1A2B] text-ivory font-marcellus uppercase tracking-wider">
+                    <th className="p-2.5 w-10 text-center">Seat</th>
                     <th className="p-2.5">Booking ID</th>
                     <th className="p-2.5">Category</th>
                     <th className="p-2.5">Customer Name & Student</th>
@@ -343,79 +365,307 @@ export default function AdminDashboardPage() {
                     <th className="p-2.5 text-right">Tickets</th>
                     <th className="p-2.5 text-right">Amount (₹)</th>
                     <th className="p-2.5">Status</th>
-                    <th className="p-2.5">Date</th>
+                    <th className="p-2.5">Allocated Seats</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gold/30">
                   {filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="p-6 text-center text-ink-soft font-medium">
+                      <td colSpan={10} className="p-6 text-center text-ink-soft font-medium">
                         No booking records found matching selected filters.
                       </td>
                     </tr>
                   ) : (
-                    filteredBookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-cream/50">
-                        <td className="p-2.5 font-mono font-bold text-maroon">{b.bookingId}</td>
-                        <td className="p-2.5">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            b.buyerType === 'MSN'
-                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                              : 'bg-blue-100 text-blue-900 border border-blue-300'
-                          }`}>
-                            {b.buyerType === 'MSN' ? 'MSN Student' : 'External'}
-                          </span>
-                        </td>
-                        <td className="p-2.5">
-                          <div className="font-semibold text-ink">{cleanName(b.customerName)}</div>
-                          {b.buyerType === 'MSN' && b.studentName && (
-                            <div className="text-[11px] text-bronze font-bold mt-0.5">
-                              Student: {b.studentName}
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-2.5 font-mono">{b.whatsapp}</td>
-                        <td className="p-2.5 text-ink-soft">{b.email}</td>
-                        <td className="p-2.5 text-right font-num font-bold text-emerald-900">{b.ticketQty} tickets</td>
-                        <td className="p-2.5 text-right font-num font-bold text-maroon">₹{b.totalAmount}</td>
-                        <td className="p-2.5">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            b.paymentStatus === 'PAID'
-                              ? 'bg-sandal text-maroon border border-gold/60'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {b.paymentStatus}
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-[10px] text-ink-soft">
-                          {new Date(b.bookingDate).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))
+                    filteredBookings.map((b) => {
+                      const isAllocated = b.allocationStatus === 'ALLOCATED' && b.allocatedSeats;
+                      return (
+                        <tr
+                          key={b.id}
+                          onClick={() => handleRowClick(b)}
+                          className="hover:bg-amber-50/70 cursor-pointer transition-colors"
+                        >
+                          {/* Green Tick / Checkbox indicator */}
+                          <td className="p-2.5 text-center text-sm">
+                            {isAllocated ? (
+                              <span title="Seats Allocated ✅">✅</span>
+                            ) : (
+                              <span title="Seats Not Allocated 🔲" className="text-gray-400">🔲</span>
+                            )}
+                          </td>
+
+                          <td className="p-2.5 font-mono font-bold text-[#6B1A2B]">{b.bookingId}</td>
+
+                          <td className="p-2.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              b.buyerType === 'MSN'
+                                ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                : 'bg-blue-100 text-blue-900 border border-blue-300'
+                            }`}>
+                              {b.buyerType === 'MSN' ? 'MSN' : 'External'}
+                            </span>
+                          </td>
+
+                          <td className="p-2.5">
+                            <div className="font-semibold text-ink">{cleanName(b.customerName)}</div>
+                            {b.buyerType === 'MSN' && b.studentName && (
+                              <div className="text-[11px] text-bronze font-bold mt-0.5">
+                                Student: {b.studentName}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="p-2.5 font-mono">{b.whatsapp || b.phone}</td>
+
+                          <td className="p-2.5 text-ink-soft">{b.email}</td>
+
+                          <td className="p-2.5 text-right font-num font-bold text-emerald-900">
+                            {b.ticketQty} tickets
+                          </td>
+
+                          <td className="p-2.5 text-right font-num font-bold text-maroon">
+                            ₹{b.totalAmount}
+                          </td>
+
+                          <td className="p-2.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              b.paymentStatus === 'PAID'
+                                ? 'bg-sandal text-maroon border border-gold/60'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {b.paymentStatus}
+                            </span>
+                          </td>
+
+                          {/* Allocated Seat Tag */}
+                          <td className="p-2.5">
+                            {isAllocated ? (
+                              <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-950 border border-emerald-300 font-mono font-bold text-[11px] inline-block shadow-sm">
+                                {b.allocatedSeats}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-amber-800 italic bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                Pending Allocation
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
-
-                {/* Table Totals Summary Footer */}
-                {filteredBookings.length > 0 && (
-                  <tfoot>
-                    <tr className="bg-sandal/60 border-t-2 border-gold font-bold text-ink">
-                      <td colSpan={5} className="p-3 text-right uppercase tracking-wider font-marcellus">
-                        TOTALS:
-                      </td>
-                      <td className="p-3 text-right font-num text-emerald-950 text-sm">
-                        {filteredTickets} tickets
-                      </td>
-                      <td className="p-3 text-right font-num text-maroon text-sm">
-                        ₹{filteredCollections.toLocaleString()}
-                      </td>
-                      <td colSpan={2} className="p-3 text-xs text-ink-soft">
-                        ({filteredPaidBuyers} Buyers Paid)
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Card Drawer */}
+      {activeBooking && !showSeatingChart && (
+        <BookingDrawer
+          booking={activeBooking}
+          onClose={() => setActiveBooking(null)}
+          onOpenSeatingChart={handleOpenSeatingChartFromDrawer}
+        />
+      )}
+
+      {/* Interactive Seating Chart Modal */}
+      {showSeatingChart && activeBooking && (
+        <SeatingChartModal
+          booking={activeBooking}
+          onClose={() => setShowSeatingChart(false)}
+          onConfirmSuccess={handleSeatAllocationSuccess}
+        />
+      )}
+
+      {/* Add Person / Manual Booking Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#FAF6EF] border-2 border-[#D4AF37] rounded-xl shadow-2xl max-w-xl w-full p-6 text-[#2C1810] space-y-4 my-8">
+            <div className="flex justify-between items-center border-b border-[#D4AF37]/40 pb-3">
+              <h3 className="font-serif-display text-xl font-bold text-[#6B1A2B] flex items-center gap-2">
+                <span>➕</span>
+                <span>Add New Person / Booking Record</span>
+              </h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="w-7 h-7 rounded bg-[#6B1A2B] text-white font-bold text-xs hover:bg-[#8B2338]"
+              >
+                ✕
+              </button>
+            </div>
+
+            {addError && (
+              <div className="p-3 rounded bg-red-900 text-white text-xs font-bold">
+                ⚠️ {addError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddPersonSubmit} className="space-y-4 text-xs">
+              {/* Buyer Type Toggle */}
+              <div className="space-y-1">
+                <label className="block font-bold text-[#6B1A2B] uppercase">Student / Buyer Type</label>
+                <div className="flex rounded border border-[#D4AF37] overflow-hidden bg-white p-1 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setAddFormData({ ...addFormData, buyerType: 'MSN' })}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded transition-colors ${
+                      addFormData.buyerType === 'MSN' ? 'bg-[#6B1A2B] text-white' : 'text-[#6B1A2B] hover:bg-sandal'
+                    }`}
+                  >
+                    MSN Student / Parent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddFormData({ ...addFormData, buyerType: 'EXTERNAL' })}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded transition-colors ${
+                      addFormData.buyerType === 'EXTERNAL' ? 'bg-[#6B1A2B] text-white' : 'text-[#6B1A2B] hover:bg-sandal'
+                    }`}
+                  >
+                    External Guest
+                  </button>
+                </div>
+              </div>
+
+              {/* Customer Name & Student Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Customer / Parent Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={addFormData.customerName}
+                    onChange={(e) => setAddFormData({ ...addFormData, customerName: e.target.value })}
+                    placeholder="e.g. Ramesh Kumar"
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white text-ink font-medium focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Student Name {addFormData.buyerType === 'MSN' ? '*' : '(Optional)'}</label>
+                  <input
+                    type="text"
+                    value={addFormData.studentName}
+                    onChange={(e) => setAddFormData({ ...addFormData, studentName: e.target.value })}
+                    placeholder="e.g. Aarav Kumar"
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white text-ink font-medium focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+              </div>
+
+              {/* Phone & WhatsApp */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={addFormData.phone}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAddFormData({
+                        ...addFormData,
+                        phone: val,
+                        whatsapp: addFormData.isWhatsappSame ? val : addFormData.whatsapp,
+                      });
+                    }}
+                    placeholder="e.g. 9876543210"
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white font-mono font-medium focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">WhatsApp Number</label>
+                  <input
+                    type="tel"
+                    value={addFormData.whatsapp}
+                    onChange={(e) => setAddFormData({ ...addFormData, whatsapp: e.target.value, isWhatsappSame: false })}
+                    placeholder="e.g. 9876543210"
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white font-mono font-medium focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+              </div>
+
+              {/* Email & Team Code */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={addFormData.email}
+                    onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
+                    placeholder="e.g. ramesh@example.com"
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white font-medium focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Team / Batch Code</label>
+                  <input
+                    type="text"
+                    value={addFormData.teamCode}
+                    onChange={(e) => setAddFormData({ ...addFormData, teamCode: e.target.value })}
+                    placeholder="e.g. General / Team-A"
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white font-medium focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+              </div>
+
+              {/* Tickets, Amount & Payment Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Ticket Qty *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    required
+                    value={addFormData.ticketQty}
+                    onChange={(e) => {
+                      const qty = Math.max(1, parseInt(e.target.value) || 1);
+                      setAddFormData({ ...addFormData, ticketQty: qty, totalAmount: qty * 850 });
+                    }}
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white font-mono font-bold focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Total Amount (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    value={addFormData.totalAmount}
+                    onChange={(e) => setAddFormData({ ...addFormData, totalAmount: parseInt(e.target.value) || 0 })}
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white font-mono font-bold text-maroon focus:outline-none focus:border-[#6B1A2B]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#6B1A2B] uppercase mb-1">Payment Status</label>
+                  <select
+                    value={addFormData.paymentStatus}
+                    onChange={(e) => setAddFormData({ ...addFormData, paymentStatus: e.target.value })}
+                    className="w-full p-2.5 rounded border border-[#D4AF37]/60 bg-white font-bold focus:outline-none focus:border-[#6B1A2B]"
+                  >
+                    <option value="PAID">PAID (Verified)</option>
+                    <option value="PENDING">PENDING</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-[#D4AF37]/40 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold uppercase text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addSubmitting}
+                  className="px-6 py-2.5 rounded bg-[#6B1A2B] hover:bg-[#8B2338] text-white font-bold uppercase text-xs tracking-wider shadow-md border border-[#D4AF37] cursor-pointer"
+                >
+                  {addSubmitting ? 'Adding Customer...' : 'Confirm & Save Booking'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

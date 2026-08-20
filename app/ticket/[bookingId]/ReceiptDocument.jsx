@@ -2,11 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
+import MiniSeatingChart from '../../../components/MiniSeatingChart';
 
 export default function ReceiptDocument({ booking }) {
   const handleDownloadPDF = () => {
     window.print();
   };
+
+  const isAllocated = booking.allocationStatus === 'ALLOCATED' && booking.allocatedSeats;
 
   return (
     <div className="py-10 px-4 sm:px-8 max-w-3xl mx-auto print-page" style={{ background: 'var(--ivory)' }}>
@@ -65,7 +68,7 @@ export default function ReceiptDocument({ booking }) {
             </div>
             <div className="sm:text-right">
               <span className="px-3 py-1 rounded text-xs font-extrabold bg-sandal text-maroon border border-gold/60 inline-block uppercase tracking-wider">
-                ✓ VERIFIED {booking.paymentStatus}
+                ✓ Payment Verified
               </span>
             </div>
           </div>
@@ -101,7 +104,40 @@ export default function ReceiptDocument({ booking }) {
           </div>
         </div>
 
-        {/* 3. Official Invitation Poster (Optimized screen view, excluded from PDF download) */}
+        {/* 3. Official Seat Allocation Badge Section */}
+        <div className={`p-5 rounded-lg border-2 space-y-2 ${
+          isAllocated
+            ? 'bg-emerald-50/90 border-emerald-500 text-emerald-950'
+            : 'bg-amber-50/90 border-amber-400 text-amber-950'
+        }`}>
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-bronze block">
+              🪑 AUDITORIUM SEAT ALLOCATION STATUS
+            </span>
+            <span className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+              isAllocated ? 'bg-emerald-700 text-white' : 'bg-amber-600 text-white'
+            }`}>
+              {isAllocated ? '✅ SEATS ALLOCATED' : '🔲 PENDING ALLOCATION'}
+            </span>
+          </div>
+
+          {isAllocated ? (
+            <div>
+              <div className="font-mono text-2xl font-black text-emerald-900 tracking-wider">
+                Your Allocated Seats: {booking.allocatedSeats}
+              </div>
+              <p className="text-xs text-emerald-800 font-medium mt-1">
+                Please show your allocated seat numbers ({booking.allocatedSeats}) at the entry desk of Dhwani Auditorium.
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-amber-900 font-semibold mt-1">
+              Seat allocation in progress. You will be notified shortly via WhatsApp and Email once your seat numbers are assigned by the organizers.
+            </p>
+          )}
+        </div>
+
+        {/* 5. Official Invitation Poster (Optimized screen view, excluded from PDF download) */}
         <div className="rounded-lg border border-gold/40 p-2 sm:p-3 bg-white/80 shadow-sm no-print overflow-hidden text-center">
           <img
             src="/Images/invitation.png"
@@ -110,7 +146,7 @@ export default function ReceiptDocument({ booking }) {
           />
         </div>
 
-        {/* 4. Buyer Details Section */}
+        {/* 6. Buyer Details Section */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-widest text-bronze border-b border-gold/20 pb-1.5">
             👤 Buyer Information
@@ -148,7 +184,7 @@ export default function ReceiptDocument({ booking }) {
           </div>
         </div>
 
-        {/* 5. Event Details Section */}
+        {/* 7. Event Details Section */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-widest text-bronze border-b border-gold/20 pb-1.5">
             📍 Event Location & Timing
@@ -177,7 +213,7 @@ export default function ReceiptDocument({ booking }) {
           </div>
         </div>
 
-        {/* 6. Important Event Notes */}
+        {/* 8. Important Event Notes */}
         <div className="p-4 rounded bg-sandal/30 border border-gold/30 space-y-2 text-xs text-ink-soft">
           <strong className="text-maroon block font-semibold uppercase tracking-wider text-[11px]">
             ℹ️ Important Event Guidelines & Entry Instructions
@@ -190,7 +226,7 @@ export default function ReceiptDocument({ booking }) {
           </ul>
         </div>
 
-        {/* 7. Footer Section */}
+        {/* 9. Footer Section */}
         <div className="text-center pt-4 border-t border-gold/30 text-xs text-ink-soft">
           <p className="font-marcellus font-semibold text-maroon text-sm">
             Thank you for supporting M.S. Natyakshetra & Skanda Production 2026!

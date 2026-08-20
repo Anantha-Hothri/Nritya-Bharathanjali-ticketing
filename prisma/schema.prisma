@@ -17,21 +17,29 @@ model AdminUser {
 }
 
 model Booking {
-  id                    String   @id @default(uuid())
-  bookingId             String   @unique // Public unique reference e.g. SKD-84920
-  buyerType             String   @default("EXTERNAL") // "MSN" | "EXTERNAL"
+  id                    String    @id @default(uuid())
+  bookingId             String    @unique // Public unique reference e.g. SKD-84920
+  buyerType             String    @default("EXTERNAL") // "MSN" | "EXTERNAL"
+  teamCode              String    @default("General") // "ASURI" | "FOLK" | "General"
   customerName          String
-  studentName           String?  // MSN Student Name (Child's Name for MSN Parent/Student bookings)
+  studentName           String?   // MSN Student Name (Child's Name for MSN Parent/Student bookings)
   phone                 String
-  isWhatsappSame        Boolean  @default(true)
+  isWhatsappSame        Boolean   @default(true)
   whatsapp              String
   email                 String
   ticketQty             Int
   totalAmount           Float
-  paymentStatus         String   @default("PENDING") // "PENDING" | "PAID" | "FAILED"
-  paymentId             String?  // PhonePe Provider Reference ID
-  merchantTransactionId String?  @unique // PhonePe Merchant Transaction ID
-  bookingDate           DateTime @default(now())
+  paymentStatus         String    @default("PENDING") // "PENDING" | "PAID" | "FAILED"
+  paymentId             String?   // PhonePe Provider Reference ID
+  merchantTransactionId String?   @unique // PhonePe Merchant Transaction ID
+  bookingDate           DateTime  @default(now())
+  allocatedSeats        String    @default("") // Comma-separated list e.g. "G15, G16, G17"
+  allocationStatus       String    @default("NOT_ALLOCATED") // "NOT_ALLOCATED" | "ALLOCATED"
+  allocatedBy           String?
+  allocatedAt           DateTime?
+  notificationSent      Boolean   @default(false)
+  utrNumber             String?   // UPI Transaction Reference submitted by user
+  upiPaymentAt          DateTime? // Timestamp when user claimed payment
   tickets               Ticket[]
 }
 
@@ -42,4 +50,21 @@ model Ticket {
   booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   qrCodeData String
   issuedAt   DateTime @default(now())
+}
+
+model Seat {
+  id                   String    @id @default(uuid())
+  seatId               String    @unique // e.g. "G15", "A1", "C05"
+  section              String    // "C-Side" | "M-Side" | "R-Side"
+  row                  String    // "A".."S"
+  number               Int       // Seat index number in row e.g. 15
+  zone                 String    // "VIP", "CMS - NPS", "CMS - HS", etc.
+  status               String    @default("AVAILABLE") // "AVAILABLE" | "ALLOCATED" | "LOCKED"
+  allocatedToBookingId String?
+  allocatedBy          String?
+  allocatedAt          DateTime?
+  lockedBy             String?   // Temporary lock admin ID
+  lockedUntil          DateTime? // Temporary lock expiry timestamp
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }

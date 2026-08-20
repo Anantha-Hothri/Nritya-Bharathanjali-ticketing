@@ -18,6 +18,12 @@ export default function BookingSummaryPage() {
     ticketPrice: 850,
   });
 
+  // UPI payment state
+  const [step, setStep] = useState('SELECT'); // 'SELECT' | 'PAYMENT'
+  const [upiInfo, setUpiInfo] = useState(null);   // { upiId, upiDeepLink, qrCodeDataUrl, amount, reference }
+  const [bookingInfo, setBookingInfo] = useState(null); // { bookingId, ... }
+  const [submitting, setSubmitting] = useState(false);
+
   const minTicketQty = buyerType === 'MSN' ? 3 : 1;
   const ticketPrice = capacityInfo.ticketPrice || 850;
 
@@ -44,15 +50,14 @@ export default function BookingSummaryPage() {
     try {
       const res = await fetch('/api/booking/capacity');
       const data = await res.json();
-      if (data.success) {
-        setCapacityInfo(data);
-      }
+      if (data.success) setCapacityInfo(data);
     } catch (err) {
       console.error('Error loading capacity:', err);
     }
   };
 
-  const handlePhonePePayment = async () => {
+  // Step 1 → 2: Create booking and show UPI payment screen
+  const handleProceedToPay = async () => {
     if (!customer) return;
     setError('');
 
@@ -75,48 +80,57 @@ export default function BookingSummaryPage() {
     };
 
     try {
-      // Step 1: Initiate PhonePe Order in DB & Generate Checksum
-      const createRes = await fetch('/api/booking/create', {
+      const res = await fetch('/api/booking/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      const data = await res.json();
 
-      const createData = await createRes.json();
-
-      if (!createData.success) {
-        setError(createData.error || 'Failed to initiate PhonePe booking.');
+      if (!data.success) {
+        setError(data.error || 'Failed to create booking. Please try again.');
         setLoading(false);
         return;
       }
 
-      const { bookingId, merchantTransactionId } = createData.booking;
+      setBookingInfo(data.booking);
+      setUpiInfo(data.upi);
+      setStep('PAYMENT');
+      setLoading(false);
+    } catch (err) {
+      setError('Network error. Please check your connection and try again.');
+      setLoading(false);
+    }
+  };
 
-      // Step 2: Perform Verified PhonePe Payment Status Callback
-      const verifyRes = await fetch('/api/payment/verify', {
+  // Step 2: User clicks "I've Paid" — flag booking for manual admin verification, go to pending page
+  const handlePaymentClaimed = async () => {
+    if (!bookingInfo) return;
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/payment/submit-utr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          merchantTransactionId,
-          providerReferenceId: `PPN_TEST_${Date.now()}`,
+          bookingId: bookingInfo.bookingId,
         }),
       });
+      const data = await res.json();
 
-      const verifyData = await verifyRes.json();
-
-      if (verifyData.success) {
-        // Clear session customer login & redirect to official Booking Acknowledgement Receipt
+      if (data.success) {
         sessionStorage.removeItem('skanda_customer_login');
         sessionStorage.removeItem('skanda_buyer_type');
-        router.push(`/ticket/${bookingId}`);
+        sessionStorage.removeItem('skanda_student_name');
+        router.push(`/booking/pending?id=${bookingInfo.bookingId}`);
       } else {
-        setError(verifyData.error || 'PhonePe payment verification failed.');
-        setLoading(false);
+        setError(data.error || 'Failed to record payment. Please contact support.');
+        setSubmitting(false);
       }
     } catch (err) {
-      console.error(err);
-      setError('Network error processing PhonePe payment.');
-      setLoading(false);
+      setError('Network error. Please try again.');
+      setSubmitting(false);
     }
   };
 
@@ -134,144 +148,210 @@ export default function BookingSummaryPage() {
           ✓ 1. Contact Details
         </div>
         <div className="opacity-60 cursor-pointer" onClick={() => router.push('/booking/select-type')}>
-          ✓ 2. Category ({buyerType === 'MSN' ? 'MSN Student' : 'External'})
+          ✓ 2. Category ({buyerType === 'MSN' ? 'MSN' : 'External'})
         </div>
         <div className="flex items-center gap-2 text-maroon font-bold">
           <span className="step-badge">3</span>
-          <span>PhonePe Payment</span>
+          <span>{step === 'SELECT' ? 'Tickets & Payment' : 'Pay via UPI'}</span>
         </div>
       </div>
 
-      <div className="card-gold-accent p-6 sm:p-8 space-y-6">
-        <div className="text-center">
-          <p className="eyebrow mb-1">STEP 3 OF 3</p>
-          <h2 className="font-serif-display text-3xl font-semibold" style={{ color: 'var(--maroon)' }}>
-            Select Tickets & Proceed to PhonePe Payment
-          </h2>
-          <p className="text-sm text-ink-soft mt-1">
-            Review your details, select your ticket quantity, and complete your secure booking via PhonePe.
-          </p>
+      {error && (
+        <div className="mb-4 p-3 rounded bg-red-100 border border-red-300 text-red-800 text-sm">
+          ⚠️ {error}
         </div>
+      )}
 
-        {error && (
-          <div className="p-3 rounded bg-red-100 border border-red-300 text-red-800 text-sm">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Customer Details Box */}
-        <div className="p-4 rounded-lg bg-cream border border-gold space-y-3 text-sm">
-          <div className="flex justify-between items-center pb-3 border-b border-gold/30">
-            <div>
-              <span className="text-xs text-ink-soft block uppercase">PRIMARY CUSTOMER</span>
-              <strong className="text-maroon font-semibold text-base">{customer.customerName}</strong>
-            </div>
-            <button
-              onClick={() => router.push('/booking/login')}
-              className="text-xs text-maroon hover:underline font-semibold"
-            >
-              Edit Contact
-            </button>
+      {/* ── STEP 1: Ticket selector ── */}
+      {step === 'SELECT' && (
+        <div className="card-gold-accent p-6 sm:p-8 space-y-6">
+          <div className="text-center">
+            <p className="eyebrow mb-1">STEP 3 OF 3</p>
+            <h2 className="font-serif-display text-3xl font-semibold" style={{ color: 'var(--maroon)' }}>
+              Select Tickets & Proceed to Payment
+            </h2>
+            <p className="text-sm text-ink-soft mt-1">
+              Review your details, select ticket quantity, and pay via UPI.
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-xs text-ink-soft block uppercase">ATTENDEE CATEGORY</span>
-              <span className="font-bold text-maroon flex items-center gap-1">
-                {buyerType === 'MSN' ? '🎭 MSN Student / Parent' : '🎟️ External Attendee'}
-              </span>
+          {/* Customer Details Box */}
+          <div className="p-4 rounded-lg bg-cream border border-gold space-y-3 text-sm">
+            <div className="flex justify-between items-center pb-3 border-b border-gold/30">
+              <div>
+                <span className="text-xs text-ink-soft block uppercase">PRIMARY CUSTOMER</span>
+                <strong className="text-maroon font-semibold text-base">{customer.customerName}</strong>
+              </div>
+              <button
+                onClick={() => router.push('/booking/login')}
+                className="text-xs text-maroon hover:underline font-semibold"
+              >
+                Edit Contact
+              </button>
             </div>
-            <div>
-              <span className="text-xs text-ink-soft block uppercase">PHONE / WHATSAPP</span>
-              <span className="text-ink font-mono">{customer.whatsapp}</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-xs text-ink-soft block uppercase">ATTENDEE CATEGORY</span>
+                <span className="font-bold text-maroon flex items-center gap-1">
+                  {buyerType === 'MSN' ? '🎭 MSN' : '🎟️ External Attendee'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-ink-soft block uppercase">PHONE / WHATSAPP</span>
+                <span className="text-ink font-mono">{customer.whatsapp}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Ticket Quantity Selector */}
-        <div className="p-4 rounded-lg border border-gold/40 bg-sandal/20 space-y-3">
-          <div className="flex justify-between items-center">
+          {/* Ticket Quantity Selector */}
+          <div className="p-4 rounded-lg border border-gold/40 bg-sandal/20 space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wider text-bronze">
               NUMBER OF TICKETS (₹{ticketPrice} PER TICKET)
             </label>
-          </div>
-
-          <div className="flex items-center gap-5">
-            <button
-              type="button"
-              onClick={() => setTicketQty((q) => Math.max(minTicketQty, q - 1))}
-              disabled={ticketQty <= minTicketQty || isSoldOut}
-              className="w-12 h-12 rounded border border-gold bg-sandal text-2xl font-bold flex items-center justify-center disabled:opacity-40 hover:bg-gold-pale transition-colors"
-            >
-              -
-            </button>
-
-            <div className="text-center">
-              <span className="font-num text-4xl font-bold text-maroon">{ticketQty}</span>
-              <span className="block text-xs text-ink-soft font-semibold">
-                {ticketQty === 1 ? 'Ticket' : 'Tickets'}
-              </span>
+            <div className="flex items-center gap-5">
+              <button
+                type="button"
+                onClick={() => setTicketQty((q) => Math.max(minTicketQty, q - 1))}
+                disabled={ticketQty <= minTicketQty || isSoldOut}
+                className="w-12 h-12 rounded border border-gold bg-sandal text-2xl font-bold flex items-center justify-center disabled:opacity-40 hover:bg-gold-pale transition-colors"
+              >
+                -
+              </button>
+              <div className="text-center">
+                <span className="font-num text-4xl font-bold text-maroon">{ticketQty}</span>
+                <span className="block text-xs text-ink-soft font-semibold">
+                  {ticketQty === 1 ? 'Ticket' : 'Tickets'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTicketQty((q) => Math.min(remaining, q + 1))}
+                disabled={ticketQty >= remaining || isSoldOut}
+                className="w-12 h-12 rounded border border-gold bg-sandal text-2xl font-bold flex items-center justify-center disabled:opacity-40 hover:bg-gold-pale transition-colors"
+              >
+                +
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setTicketQty((q) => Math.min(remaining, q + 1))}
-              disabled={ticketQty >= remaining || isSoldOut}
-              className="w-12 h-12 rounded border border-gold bg-sandal text-2xl font-bold flex items-center justify-center disabled:opacity-40 hover:bg-gold-pale transition-colors"
-            >
-              +
-            </button>
+            {buyerType === 'MSN' && (
+              <div className="p-2.5 rounded bg-sandal/80 border border-gold text-xs text-maroon font-bold text-center">
+                🔒 MSN Student/Parent bookings require a minimum of 3 tickets.
+              </div>
+            )}
           </div>
 
-          {/* MSN Minimum 3 Tickets Rule Notice */}
-          {buyerType === 'MSN' && (
-            <div className="p-2.5 rounded bg-sandal/80 border border-gold text-xs text-maroon font-bold text-center">
-              🔒 MSN Student/Parent bookings require a minimum of 3 tickets.
+          {/* Amount Breakdown */}
+          <div className="p-4 rounded border border-gold/50 bg-sandal/40 space-y-2">
+            <div className="flex justify-between text-sm text-ink-soft">
+              <span>Ticket Price</span>
+              <span className="font-mono">₹{ticketPrice}</span>
             </div>
-          )}
-        </div>
+            <div className="flex justify-between text-sm text-ink-soft">
+              <span>Quantity</span>
+              <span className="font-mono">× {ticketQty}</span>
+            </div>
+            <div className="pt-2 border-t border-gold/40 flex justify-between items-center text-maroon">
+              <span className="font-bold uppercase tracking-wider text-sm">TOTAL AMOUNT DUE</span>
+              <span className="font-num text-3xl font-bold">₹{totalAmount.toLocaleString()}</span>
+            </div>
+          </div>
 
-        {/* Amount Breakdown */}
-        <div className="p-4 rounded border border-gold/50 bg-sandal/40 space-y-2">
-          <div className="flex justify-between text-sm text-ink-soft">
-            <span>Ticket Price</span>
-            <span className="font-mono">₹{ticketPrice}</span>
-          </div>
-          <div className="flex justify-between text-sm text-ink-soft">
-            <span>Quantity</span>
-            <span className="font-mono">× {ticketQty}</span>
-          </div>
-          <div className="pt-2 border-t border-gold/40 flex justify-between items-center text-maroon">
-            <span className="font-bold uppercase tracking-wider text-sm">TOTAL AMOUNT DUE</span>
-            <span className="font-num text-3xl font-bold">
-              ₹{totalAmount.toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        {/* PhonePe Gateway CTA Button */}
-        <div>
+          {/* CTA */}
           <button
-            onClick={handlePhonePePayment}
+            onClick={handleProceedToPay}
             disabled={loading || isSoldOut}
             className="w-full luxe-button luxe-button-solid py-4 text-base shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {loading ? (
-              <span>⏳ Initiating PhonePe Checkout...</span>
+              <span>⏳ Preparing Payment...</span>
             ) : isSoldOut ? (
-              <span>❌ BOOKINGS CLOSED - SOLD OUT (600 TICKETS REACHED)</span>
+              <span>❌ BOOKINGS CLOSED — SOLD OUT</span>
             ) : (
               <>
-                <span>💳 PAY ₹{totalAmount.toLocaleString()} VIA PHONEPE</span>
+                <span>💳 PROCEED TO PAY ₹{totalAmount.toLocaleString()} VIA UPI</span>
                 <span>&rarr;</span>
               </>
             )}
           </button>
           <p className="text-xs text-center text-ink-soft mt-2">
-            🔒 Safe & Secure PhonePe Encrypted Checkout. E-ticket issued instantly upon verified payment.
+            🔒 Secure UPI payment. E-ticket issued after payment confirmation.
           </p>
         </div>
-      </div>
+      )}
+
+      {/* ── STEP 2: UPI Payment Screen ── */}
+      {step === 'PAYMENT' && upiInfo && bookingInfo && (
+        <div className="card-gold-accent p-6 sm:p-8 space-y-6">
+          <div className="text-center">
+            <p className="eyebrow mb-1">STEP 3 OF 3</p>
+            <h2 className="font-serif-display text-2xl font-semibold" style={{ color: 'var(--maroon)' }}>
+              Complete Your UPI Payment
+            </h2>
+            <p className="text-sm text-ink-soft mt-1">
+              Scan the QR code or tap the button to open your UPI app. The amount is pre-filled.
+            </p>
+          </div>
+
+          {/* Amount banner */}
+          <div className="text-center p-4 rounded-xl bg-maroon/5 border-2 border-gold/60">
+            <p className="text-xs font-bold uppercase tracking-wider text-bronze mb-1">Amount to Pay</p>
+            <p className="font-num text-4xl font-bold text-maroon">₹{upiInfo.amount.toLocaleString()}</p>
+            <p className="text-xs text-ink-soft mt-1">
+              Booking: <span className="font-mono font-bold text-maroon">{bookingInfo.bookingId}</span>
+              &nbsp;·&nbsp; {bookingInfo.ticketQty} ticket{bookingInfo.ticketQty > 1 ? 's' : ''}
+            </p>
+          </div>
+
+          {/* QR Code */}
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-bronze">Scan with Any UPI App</p>
+            <div className="p-3 rounded-xl bg-white border-2 border-gold/60 shadow-md inline-block">
+              <img
+                src={upiInfo.qrCodeDataUrl}
+                alt="UPI QR Code"
+                className="w-56 h-56"
+              />
+            </div>
+            <p className="text-xs text-ink-soft">
+              Pay to: <span className="font-mono font-bold text-maroon">{upiInfo.upiId}</span>
+            </p>
+          </div>
+
+          {/* Open UPI App button (works on mobile) */}
+          <a
+            href={upiInfo.upiDeepLink}
+            className="w-full luxe-button luxe-button-solid py-3.5 text-sm shadow-md flex items-center justify-center gap-2 no-underline text-center"
+            style={{ display: 'flex' }}
+          >
+            <span>📱 Open UPI App to Pay ₹{upiInfo.amount.toLocaleString()}</span>
+          </a>
+
+          {/* Confirm button */}
+          <button
+            onClick={handlePaymentClaimed}
+            disabled={submitting}
+            className="w-full luxe-button luxe-button-solid py-4 text-base shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
+          >
+            {submitting ? (
+              <span>⏳ Confirming...</span>
+            ) : (
+              <>
+                <span>✅ I've Completed the Payment</span>
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-center text-ink-soft">
+            Your booking will be confirmed within a few minutes. You'll receive a WhatsApp message and email with your e-ticket link.
+          </p>
+
+          <button
+            onClick={() => { setStep('SELECT'); setError(''); }}
+            className="w-full text-xs text-ink-soft hover:text-maroon underline text-center"
+          >
+            ← Back to ticket selection
+          </button>
+        </div>
+      )}
     </div>
   );
 }
