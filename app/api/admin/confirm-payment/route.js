@@ -61,18 +61,11 @@ export async function POST(request) {
       createdTickets.push(ticket);
     }
 
-    // Send WhatsApp + Email receipt notification
+    // Send Email receipt notification
     try {
       const { sendBroadcastNotification } = await import('../../../../lib/notificationService');
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://skandaproduction.com';
       const confirmationMessage = `✅ Your payment of ₹${updatedBooking.totalAmount.toLocaleString('en-IN')} has been confirmed!\n\nYour ${updatedBooking.ticketQty} ticket(s) for M.S. Naatyakshetra – Nritya Bharathanjali 2026 are now booked.\n\nView & download your e-ticket: ${appUrl}/ticket/${updatedBooking.bookingId}`;
-
-      await sendBroadcastNotification({
-        channel: 'WHATSAPP',
-        booking: updatedBooking,
-        message: confirmationMessage,
-        attachments: [],
-      });
 
       await sendBroadcastNotification({
         channel: 'EMAIL',

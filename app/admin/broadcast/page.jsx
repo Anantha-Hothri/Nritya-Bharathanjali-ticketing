@@ -18,7 +18,7 @@ export default function AdminBroadcastPage() {
   const [attachments, setAttachments] = useState([]);
 
   // Action State
-  const [sendingChannel, setSendingChannel] = useState(null); // 'WHATSAPP' | 'EMAIL' | null
+  const [sendingChannel, setSendingChannel] = useState(null); // 'EMAIL' | null
   const [alertFeedback, setAlertFeedback] = useState(null); // { type: 'success'|'warning'|'error', text: '' }
 
   // Recipient Details Table Search
@@ -27,24 +27,9 @@ export default function AdminBroadcastPage() {
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
 
-  const [waStatus, setWaStatus] = useState({ connected: false, qrDataUrl: null });
-
   useEffect(() => {
     loadBookingsData();
-    fetchWaStatus();
-    const interval = setInterval(fetchWaStatus, 4000);
-    return () => clearInterval(interval);
   }, []);
-
-  const fetchWaStatus = async () => {
-    try {
-      const res = await fetch('/api/admin/whatsapp-status');
-      const data = await res.json();
-      if (data.success) {
-        setWaStatus({ connected: data.connected, qrDataUrl: data.qrDataUrl });
-      }
-    } catch (e) {}
-  };
 
   const loadBookingsData = async () => {
     try {
@@ -180,7 +165,7 @@ export default function AdminBroadcastPage() {
         if (data.failedCount === 0) {
           setAlertFeedback({
             type: 'success',
-            text: `✅ ${channel === 'WHATSAPP' ? 'WhatsApp messages' : 'Emails'} sent to ${data.sentCount} recipients successfully.`,
+            text: `✅ Emails sent to ${data.sentCount} recipients successfully.`,
           });
         } else {
           setAlertFeedback({
@@ -233,35 +218,6 @@ export default function AdminBroadcastPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* ================= WHATSAPP WEB CONNECTION STATUS ================= */}
-          <div className="card-gold-accent p-4 bg-white/90 shadow-md border-2 border-[#D4AF37] flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📲</span>
-              <div>
-                <h3 className="font-serif-display text-sm font-bold text-[#6B1A2B] uppercase tracking-wider">
-                  WhatsApp Connection Status
-                </h3>
-                <div className="text-xs mt-0.5 flex items-center gap-2">
-                  {waStatus.connected ? (
-                    <span className="text-emerald-800 font-bold flex items-center gap-1.5 bg-emerald-100 px-2.5 py-0.5 rounded border border-emerald-300">
-                      <span>🟢</span> Connected — Ready to send bulk messages
-                    </span>
-                  ) : (
-                    <span className="text-amber-900 font-bold flex items-center gap-1.5 bg-amber-100 px-2.5 py-0.5 rounded border border-amber-300">
-                      <span>🔴</span> Disconnected — Scan QR Code below to connect whatsapp-web.js
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {!waStatus.connected && waStatus.qrDataUrl && (
-              <div className="p-3 rounded bg-[#FAF6EF] border border-[#D4AF37] text-center space-y-1">
-                <img src={waStatus.qrDataUrl} alt="WhatsApp QR Code" className="w-36 h-36 mx-auto rounded shadow-sm border border-gray-300" />
-                <span className="text-[10px] text-[#6B1A2B] font-bold block uppercase tracking-wider">Scan with WhatsApp app to connect</span>
-              </div>
-            )}
-          </div>
           {/* ================= SECTION 1 — RECIPIENT FILTERS ================= */}
           <div className="card-gold-accent p-6 bg-white/90 shadow-md space-y-5 border-2 border-[#D4AF37]">
             <div className="border-b border-[#D4AF37]/30 pb-3 flex justify-between items-start flex-wrap gap-2">
@@ -494,24 +450,6 @@ export default function AdminBroadcastPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
-              {/* WhatsApp Broadcast Send Button */}
-              <button
-                onClick={() => handleSendBroadcast('WHATSAPP')}
-                disabled={sendingChannel !== null || !message.trim() || matchedCount === 0}
-                className={`flex-1 sm:flex-initial px-6 py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border-2 ${
-                  sendingChannel !== null || !message.trim() || matchedCount === 0
-                    ? 'bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed'
-                    : 'bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-400 cursor-pointer hover:scale-[1.02]'
-                }`}
-              >
-                <span className="text-base">📲</span>
-                <span>
-                  {sendingChannel === 'WHATSAPP'
-                    ? 'Sending WhatsApp Messages...'
-                    : `Send WhatsApp to ${matchedCount} people`}
-                </span>
-              </button>
-
               {/* Email Broadcast Send Button */}
               <button
                 onClick={() => handleSendBroadcast('EMAIL')}

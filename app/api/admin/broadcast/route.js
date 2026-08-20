@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 import { getAdminSession } from '../../../../lib/adminAuth';
 import { sendBroadcastNotification } from '../../../../lib/notificationService';
-import { getWhatsAppClient } from '../../../../lib/whatsappClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +14,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const {
-      channel = 'WHATSAPP', // 'WHATSAPP' | 'EMAIL'
+      channel = 'EMAIL', // 'EMAIL'
       studentType = 'BOTH', // 'MSN' | 'EXTERNAL' | 'BOTH'
       paymentStatus = 'BOTH', // 'PAID' | 'UNPAID' | 'BOTH'
       seatAllocation = 'BOTH', // 'ALLOCATED' | 'NOT_ALLOCATED' | 'BOTH'
@@ -25,17 +24,6 @@ export async function POST(request) {
 
     if (!message || !message.trim()) {
       return NextResponse.json({ success: false, error: 'Broadcast message body cannot be empty.' }, { status: 400 });
-    }
-
-    // For WhatsApp: ensure the client is initialized and connected
-    if (channel === 'WHATSAPP') {
-      await getWhatsAppClient().catch(() => {});
-      if (!global.whatsappStatus?.connected) {
-        return NextResponse.json({
-          success: false,
-          error: 'WhatsApp is not connected. Please wait for the 🟢 Connected status on the broadcast page before sending.',
-        }, { status: 400 });
-      }
     }
 
     // Build filter conditions
@@ -106,11 +94,6 @@ export async function POST(request) {
           status: 'FAILED',
           reason: res.reason || 'Missing contact information',
         });
-      }
-
-      // 3-second delay between messages to avoid WhatsApp spam detection
-      if (channel === 'WHATSAPP') {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     }
 

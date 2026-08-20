@@ -67,7 +67,7 @@ export default function AdminSidebar({ onClose }) {
       label: 'Broadcast Messages',
       href: '/admin/broadcast',
       icon: '📢',
-      desc: 'Bulk WhatsApp & Email Outreach',
+      desc: 'Bulk Email Outreach',
     },
   ];
 
