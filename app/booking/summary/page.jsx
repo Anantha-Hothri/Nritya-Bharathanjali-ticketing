@@ -23,6 +23,7 @@ export default function BookingSummaryPage() {
   const [upiInfo, setUpiInfo] = useState(null);   // { upiId, upiDeepLink, qrCodeDataUrl, amount, reference }
   const [bookingInfo, setBookingInfo] = useState(null); // { bookingId, ... }
   const [submitting, setSubmitting] = useState(false);
+  const [utrInput, setUtrInput] = useState('');
 
   const minTicketQty = buyerType === 'MSN' ? 3 : 1;
   const ticketPrice = capacityInfo.ticketPrice || 850;
@@ -106,6 +107,12 @@ export default function BookingSummaryPage() {
   // Step 2: User clicks "I've Paid" — flag booking for manual admin verification, go to pending page
   const handlePaymentClaimed = async () => {
     if (!bookingInfo) return;
+
+    if (!utrInput.trim()) {
+      setError('Please enter the UPI Transaction ID / UTR Number before confirming payment.');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
 
@@ -115,6 +122,7 @@ export default function BookingSummaryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: bookingInfo.bookingId,
+          utrNumber: utrInput.trim(),
         }),
       });
       const data = await res.json();
@@ -325,10 +333,28 @@ export default function BookingSummaryPage() {
             <span>📱 Open UPI App to Pay ₹{upiInfo.amount.toLocaleString()}</span>
           </a>
 
+          {/* Transaction ID / UTR Input */}
+          <div className="p-4 rounded-lg border border-gold/40 bg-sandal/20 space-y-2">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-bronze">
+              UPI Transaction ID / UTR Number <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              value={utrInput}
+              onChange={(e) => setUtrInput(e.target.value.toUpperCase())}
+              placeholder="Enter the Transaction ID / UTR shown in your UPI app"
+              maxLength={30}
+              className="input-luxe w-full font-mono text-sm"
+            />
+            <p className="text-xs text-ink-soft">
+              Find this in your UPI app's payment history / receipt after paying. Required to confirm your payment.
+            </p>
+          </div>
+
           {/* Confirm button */}
           <button
             onClick={handlePaymentClaimed}
-            disabled={submitting}
+            disabled={submitting || !utrInput.trim()}
             className="w-full luxe-button luxe-button-solid py-4 text-base shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {submitting ? (

@@ -60,17 +60,11 @@ export default function EventLandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-12 pb-16 px-6 sm:px-10 text-center max-w-[1440px] mx-auto z-10">
-        <p className="eyebrow mb-2">M.S. NATYAKSHETRA PRESENTS</p>
+        <p className="eyebrow mb-2">M.S. NAATYAKSHETRA PRESENTS</p>
 
         <h1 className="font-serif-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-tight mb-4" style={{ color: 'var(--maroon)' }}>
           Nritya Bharathanjali 2026
         </h1>
-
-        <div className="inline-block px-8 py-2 rounded-full border border-gold bg-cream mb-6 shadow-sm">
-          <span className="font-marcellus text-lg sm:text-xl md:text-2xl font-semibold tracking-widest text-maroon">
-            ✨ SKANDA PRODUCTION ✨
-          </span>
-        </div>
 
         {/* Kolam Divider */}
         <div className="flex items-center justify-center gap-4 my-6">
@@ -117,7 +111,7 @@ export default function EventLandingPage() {
           <div className="p-5 rounded-lg card-gold-accent text-center">
             <p className="text-xs uppercase tracking-widest text-bronze mb-1">PRODUCED BY</p>
             <p className="font-marcellus text-lg font-semibold text-maroon">
-              M.S. Natyakshetra
+              M.S. Naatyakshetra
             </p>
             <p className="text-xs text-ink-soft mt-1">Artistic Dir. Guru Kousalya Nivas</p>
           </div>
@@ -179,7 +173,7 @@ export default function EventLandingPage() {
 
             <p className="text-xl leading-relaxed text-ink-soft">
               Celebrate the divine splendor of Lord Murugan through an enchanting evening of classical Bharatanatyam.
-              Featuring over 100 accomplished dancers from M.S. Natyakshetra, <strong>Nritya Bharathanjali 2026</strong> combines
+              Featuring over 100 accomplished dancers from M.S. Naatyakshetra, <strong>Nritya Bharathanjali 2026</strong> combines
               soul-stirring live Carnatic orchestration, exquisite traditional costuming, and grand stage choreography.
             </p>
 

@@ -141,7 +141,7 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
         };
       }
       return {
-        bgColor: '#9E9E9E', // Grey for allocated
+        bgColor: '#DC2626', // Red for allocated
         textColor: '#FFFFFF',
         statusText: 'ALLOCATED TO ANOTHER BOOKING',
         selectable: false,
@@ -164,7 +164,7 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
         <div className="flex items-center gap-4">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] block">
-              M.S. NATYAKSHETRA — AUDITORIUM SEATING CHART
+              M.S. NAATYAKSHETRA — AUDITORIUM SEATING CHART
             </span>
             <h2 className="font-serif-display text-xl font-bold text-[#FAF6EF] flex items-center gap-2">
               <span>Booking: {booking.bookingId}</span>

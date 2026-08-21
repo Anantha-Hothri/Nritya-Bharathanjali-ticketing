@@ -39,12 +39,17 @@ export default function ReceiptDocument({ booking }) {
         {/* 1. Header Section */}
         <div className="text-center border-b border-gold/30 pb-6 relative">
           <img
+            src="/Images/msn_logo_circle_R.png"
+            alt="M.S. Natyakshetra Emblem"
+            className="h-12 mx-auto mb-2 object-contain sm:hidden"
+          />
+          <img
             src="/Images/msn_logo_flat_R (1).png"
             alt="M.S. Natyakshetra Emblem"
-            className="h-12 mx-auto mb-2 object-contain"
+            className="h-12 mx-auto mb-2 object-contain hidden sm:block"
           />
           <p className="text-[11px] font-bold uppercase tracking-widest text-bronze mb-1">
-            M.S. NATYAKSHETRA PRESENTS
+            M.S. NAATYAKSHETRA PRESENTS
           </p>
           <h1 className="font-serif-display text-3xl sm:text-4xl font-bold text-maroon">
             Nritya Bharathanjali 2026
@@ -229,7 +234,7 @@ export default function ReceiptDocument({ booking }) {
         {/* 9. Footer Section */}
         <div className="text-center pt-4 border-t border-gold/30 text-xs text-ink-soft">
           <p className="font-marcellus font-semibold text-maroon text-sm">
-            Thank you for supporting M.S. Natyakshetra & Skanda Production 2026!
+            Thank you for supporting M.S. Naatyakshetra & Skanda Production 2026!
           </p>
         </div>
       </div>
