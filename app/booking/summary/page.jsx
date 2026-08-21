@@ -108,8 +108,15 @@ export default function BookingSummaryPage() {
   const handlePaymentClaimed = async () => {
     if (!bookingInfo) return;
 
-    if (!utrInput.trim()) {
+    const trimmedUtr = utrInput.trim();
+
+    if (!trimmedUtr) {
       setError('Please enter the UPI Transaction ID / UTR Number before confirming payment.');
+      return;
+    }
+
+    if (!/^\d{12}$/.test(trimmedUtr)) {
+      setError('Invalid Transaction ID. Please enter the exact 12-digit UPI Transaction ID / UTR Number.');
       return;
     }
 
@@ -122,7 +129,7 @@ export default function BookingSummaryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: bookingInfo.bookingId,
-          utrNumber: utrInput.trim(),
+          utrNumber: trimmedUtr,
         }),
       });
       const data = await res.json();
@@ -336,14 +343,15 @@ export default function BookingSummaryPage() {
           {/* Transaction ID / UTR Input */}
           <div className="p-4 rounded-lg border border-gold/40 bg-sandal/20 space-y-2">
             <label className="block text-xs font-semibold uppercase tracking-wider text-bronze">
-              UPI Transaction ID / UTR Number <span className="text-red-600">*</span>
+              UPI Transaction ID / UTR Number (12 Digits) <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
+              inputMode="numeric"
               value={utrInput}
-              onChange={(e) => setUtrInput(e.target.value.toUpperCase())}
-              placeholder="Enter the Transaction ID / UTR shown in your UPI app"
-              maxLength={30}
+              onChange={(e) => setUtrInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+              placeholder="Enter the 12-digit Transaction ID / UTR from your UPI app"
+              maxLength={12}
               className="input-luxe w-full font-mono text-sm"
             />
             <p className="text-xs text-ink-soft">
@@ -354,7 +362,7 @@ export default function BookingSummaryPage() {
           {/* Confirm button */}
           <button
             onClick={handlePaymentClaimed}
-            disabled={submitting || !utrInput.trim()}
+            disabled={submitting || utrInput.length !== 12}
             className="w-full luxe-button luxe-button-solid py-4 text-base shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {submitting ? (

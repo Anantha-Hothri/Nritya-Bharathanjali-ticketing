@@ -11,6 +11,13 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Missing bookingId.' }, { status: 400 });
     }
 
+    if (!utrNumber || !/^\d{12}$/.test(utrNumber.trim())) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid Transaction ID. Please enter the exact 12-digit UPI Transaction ID / UTR Number.' },
+        { status: 400 }
+      );
+    }
+
     const booking = await prisma.booking.findFirst({
       where: { bookingId },
     });
