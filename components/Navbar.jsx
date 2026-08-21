@@ -18,9 +18,14 @@ export default function Navbar() {
         {/* Brand Emblem & Logo */}
         <Link href="/" className="flex items-center gap-3">
           <img
+            src="/Images/msn_logo_circle_R.png"
+            alt="M.S. Natyakshetra Logo"
+            className="h-11 w-auto object-contain sm:hidden"
+          />
+          <img
             src="/Images/msn_logo_flat_R (1).png"
             alt="M.S. Natyakshetra Logo"
-            className="h-11 sm:h-12 w-auto object-contain"
+            className="hidden sm:block h-12 w-auto object-contain"
           />
         </Link>
 

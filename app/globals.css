@@ -10,6 +10,13 @@ html {
   box-sizing: border-box;
 }
 
+/* Slightly scale down all rem-based text on phones (admin + user pages alike) */
+@media (max-width: 640px) {
+  html {
+    font-size: 14.5px;
+  }
+}
+
 body {
   margin: 0;
   padding: 0;
