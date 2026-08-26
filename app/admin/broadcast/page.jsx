@@ -89,6 +89,31 @@ export default function AdminBroadcastPage() {
     }
   };
 
+  const handleDisconnectWhatsApp = async () => {
+    if (
+      !window.confirm(
+        'Disconnect the currently linked WhatsApp number?\n\nA fresh QR code will appear here shortly so you can link a different number. Queued messages are kept and will send once the new number is connected.'
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/whatsapp-disconnect', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setAlertFeedback({
+          type: 'success',
+          text: '🔌 Disconnect requested — the current number will be logged out and a new QR code will appear below within ~15 seconds.',
+        });
+      } else {
+        setAlertFeedback({ type: 'error', text: data.error || 'Failed to request disconnect.' });
+      }
+    } catch (e) {
+      setAlertFeedback({ type: 'error', text: 'Network error requesting WhatsApp disconnect.' });
+    }
+    loadWhatsAppStatus();
+  };
+
   const cleanName = (name) => {
     if (!name) return '';
     return name.replace(/\s*\([^)]*\)/g, '').trim();
@@ -513,11 +538,22 @@ export default function AdminBroadcastPage() {
                   {waStatus && waStatus.bridge && waStatus.bridge.online
                     ? 'WhatsApp messages (tickets, seat confirmations & broadcasts) are being delivered automatically.'
                     : waQrDataUrl
-                    ? 'The bridge is running and waiting for you to link WhatsApp — scan the QR code below.'
-                    : 'Run "npm run bridge" on your computer — the login QR code will appear right here for scanning.'}
+                    ? 'WhatsApp is not linked yet — scan the QR code below to connect a number.'
+                    : 'The WhatsApp bridge service is not running. Start it (hosted deployment, or "npm run bridge" on a computer) and the login QR will appear right here.'}
                 </div>
               </div>
             </div>
+
+            {/* Disconnect current number → generates a fresh QR for a new one */}
+            {waStatus && waStatus.bridge && waStatus.bridge.online && (
+              <button
+                onClick={handleDisconnectWhatsApp}
+                className="px-4 py-2 rounded-lg border-2 border-red-400 bg-red-50 hover:bg-red-100 text-red-800 text-[11px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              >
+                <span>🔌</span>
+                <span>Disconnect & Link New Number</span>
+              </button>
+            )}
 
             {/* Login QR — shown while the bridge is running but WhatsApp is not yet linked */}
             {waQrDataUrl && !(waStatus && waStatus.bridge && waStatus.bridge.online) && (

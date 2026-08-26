@@ -8,7 +8,34 @@ The live site runs on Vercel (serverless), which cannot keep a WhatsApp
 session alive — so the site *queues* messages in the database, and this
 bridge (running on your laptop) delivers them.
 
-## One-time setup
+## Recommended: host it in the cloud (nothing to run on your laptop)
+
+Deploy this folder as a Docker service on an always-on host — then the QR
+code appears on the admin Broadcast page automatically whenever WhatsApp is
+not connected, and messages send 24/7.
+
+**Railway (easiest):**
+
+1. Go to [railway.app](https://railway.app) → New Project → **Deploy from
+   GitHub repo** → pick this repository.
+2. In the service settings, set **Root Directory** to `bridge` (Railway
+   detects the Dockerfile automatically).
+3. Add these environment variables:
+   - `APP_URL` = `https://nritya-bharathanjali-ticketing.vercel.app`
+   - `ADMIN_USERNAME` = your admin portal username
+   - `ADMIN_PASSWORD` = your admin portal password
+4. Deploy. Open the admin **Broadcast page** — the QR code appears in the
+   WhatsApp Bridge panel. Scan it once and you're live.
+
+The same Dockerfile works on Render, Fly.io, or any VPS. Note: if the host
+restarts the container without a persistent volume, the session is lost and
+a new QR simply appears on the Broadcast page — just scan again.
+
+**Switching numbers:** click **"Disconnect & Link New Number"** on the
+Broadcast page. The current number is logged out and a fresh QR appears in
+the panel within ~15 seconds.
+
+## Alternative: run locally (one-time setup)
 
 1. Copy `.env.example` to `.env` in this folder and fill in your **admin
    portal username & password** (the same ones you use at `/admin/login`).

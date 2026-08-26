@@ -82,6 +82,7 @@ model WhatsAppBridge {
   connected       Boolean  @default(false)
   connectedNumber String?
   qrCode          String?  // Current login QR payload (cleared once connected)
+  command         String?  // Pending admin command for the bridge, e.g. "LOGOUT"
   lastSeenAt      DateTime @default(now())
 }
 

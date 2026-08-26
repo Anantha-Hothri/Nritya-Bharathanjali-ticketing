@@ -17,6 +17,9 @@ require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const qrcodeTerminal = require('qrcode-terminal');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const path = require('path');
+const fs = require('fs');
+
+const AUTH_DIR = path.join(__dirname, '.wwebjs_auth');
 
 const APP_URL = (process.env.APP_URL || 'https://nritya-bharathanjali-ticketing.vercel.app').replace(/\/+$/, '');
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
@@ -93,12 +96,18 @@ async function api(pathname, options = {}, isRetry = false) {
 // WhatsApp client
 // ---------------------------------------------------------------------------
 const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: path.join(__dirname, '.wwebjs_auth') }),
+  authStrategy: new LocalAuth({ dataPath: AUTH_DIR }),
   puppeteer: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    // Set by the Dockerfile for hosted deployments; undefined locally so
+    // puppeteer uses its own downloaded Chromium.
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
   },
 });
+
+let waReady = false;
+let intentionalLogout = false;
 
 async function reportBridgeState(state) {
   try {
@@ -130,12 +139,37 @@ client.on('auth_failure', (msg) => {
 });
 
 client.on('disconnected', async (reason) => {
-  console.error(`⚠️ WhatsApp disconnected: ${reason}. Restart the bridge to reconnect.`);
+  waReady = false;
   await reportBridgeState({ connected: false });
+
+  if (intentionalLogout) {
+    intentionalLogout = false;
+    console.log('🔌 Logged out. Preparing a fresh QR so a new number can be linked...');
+    try {
+      await client.destroy();
+    } catch (e) {
+      // ignore — browser may already be closing
+    }
+    try {
+      fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    } catch (e) {
+      // ignore
+    }
+    setTimeout(() => {
+      client.initialize().catch((e) => {
+        console.error(`❌ Failed to restart after logout: ${e.message}`);
+        process.exit(1);
+      });
+    }, 2000);
+    return;
+  }
+
+  console.error(`⚠️ WhatsApp disconnected: ${reason}. Restarting...`);
   process.exit(1);
 });
 
 client.on('ready', () => {
+  waReady = true;
   const me = client.info && client.info.wid ? client.info.wid.user : 'unknown';
   reportBridgeState({ connected: true, number: me });
   console.log(`\n✅ WhatsApp CONNECTED as +${me}`);
@@ -149,9 +183,13 @@ client.on('ready', () => {
 // Queue polling & delivery
 // ---------------------------------------------------------------------------
 let pollBusy = false;
+let pollingStarted = false;
 
 function startPolling() {
+  if (pollingStarted) return;
+  pollingStarted = true;
   setInterval(async () => {
+    if (!waReady) return;
     if (pollBusy) return;
     pollBusy = true;
     try {
@@ -167,6 +205,36 @@ function startPolling() {
 async function pollOnce() {
   const myNumber = client.info && client.info.wid ? client.info.wid.user : '';
   const data = await api(`/api/whatsapp/queue?limit=${BATCH_SIZE}&connected=true&number=${myNumber}`);
+
+  // Admin requested a disconnect from the panel — log out and restart with a fresh QR
+  if (data.command === 'LOGOUT') {
+    console.log('🔌 Disconnect requested from the admin panel — logging out this WhatsApp number...');
+    waReady = false;
+    intentionalLogout = true;
+    try {
+      await client.logout();
+    } catch (e) {
+      console.error(`Logout error (${e.message}) — forcing a session reset...`);
+      intentionalLogout = false;
+      try {
+        await client.destroy();
+      } catch (e2) {
+        // ignore
+      }
+      try {
+        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+      } catch (e2) {
+        // ignore
+      }
+      await reportBridgeState({ connected: false });
+      client.initialize().catch((e2) => {
+        console.error(`❌ Failed to restart after reset: ${e2.message}`);
+        process.exit(1);
+      });
+    }
+    return;
+  }
+
   const messages = data.messages || [];
 
   for (const msg of messages) {

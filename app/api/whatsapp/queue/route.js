@@ -28,11 +28,21 @@ export async function GET(request) {
     const number = searchParams.get('number') || null;
 
     // Heartbeat — the admin UI reads this to show bridge online/offline
-    await prisma.whatsAppBridge.upsert({
+    const bridgeRow = await prisma.whatsAppBridge.upsert({
       where: { id: 'bridge' },
       update: { connected, connectedNumber: number, lastSeenAt: new Date() },
       create: { id: 'bridge', connected, connectedNumber: number },
     });
+
+    // Claim any pending admin command (e.g. LOGOUT) exactly once
+    let command = null;
+    if (bridgeRow.command) {
+      const claimed = await prisma.whatsAppBridge.updateMany({
+        where: { id: 'bridge', command: bridgeRow.command },
+        data: { command: null },
+      });
+      if (claimed.count > 0) command = bridgeRow.command;
+    }
 
     // Reclaim messages stuck in SENDING for >5 min (bridge crashed mid-send)
     const staleCutoff = new Date(Date.now() - 5 * 60 * 1000);
@@ -57,6 +67,7 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
+      command,
       messages: pending.map((m) => {
         let attachments = [];
         try {
