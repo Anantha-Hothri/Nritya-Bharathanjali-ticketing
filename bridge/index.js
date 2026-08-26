@@ -100,10 +100,23 @@ const client = new Client({
   },
 });
 
+async function reportBridgeState(state) {
+  try {
+    await api('/api/whatsapp/bridge-state', {
+      method: 'POST',
+      body: JSON.stringify(state),
+    });
+  } catch (e) {
+    console.error(`⚠️ Could not report bridge state to the site: ${e.message}`);
+  }
+}
+
 client.on('qr', (qr) => {
   console.log('\n📱 Scan this QR code with WhatsApp on your phone:');
-  console.log('   (WhatsApp → Settings → Linked Devices → Link a Device)\n');
+  console.log('   (WhatsApp → Settings → Linked Devices → Link a Device)');
+  console.log('   It is also shown live on the admin Broadcast page.\n');
   qrcodeTerminal.generate(qr, { small: true });
+  reportBridgeState({ connected: false, qr });
 });
 
 client.on('authenticated', () => {
@@ -116,13 +129,15 @@ client.on('auth_failure', (msg) => {
   process.exit(1);
 });
 
-client.on('disconnected', (reason) => {
+client.on('disconnected', async (reason) => {
   console.error(`⚠️ WhatsApp disconnected: ${reason}. Restart the bridge to reconnect.`);
+  await reportBridgeState({ connected: false });
   process.exit(1);
 });
 
 client.on('ready', () => {
   const me = client.info && client.info.wid ? client.info.wid.user : 'unknown';
+  reportBridgeState({ connected: true, number: me });
   console.log(`\n✅ WhatsApp CONNECTED as +${me}`);
   console.log(`📡 Watching the queue at ${APP_URL} — ticket confirmations, seat`);
   console.log('   allocations and broadcasts will now send automatically.');

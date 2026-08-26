@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 import { getAdminSession } from '../../../../lib/adminAuth';
 import { sendBroadcastNotification } from '../../../../lib/notificationService';
-import { queueWhatsAppMessage } from '../../../../lib/whatsappQueue';
+import { queueWhatsAppMessage, formatWhatsAppMessage } from '../../../../lib/whatsappQueue';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,12 +80,11 @@ export async function POST(request) {
         const cleanName = booking.customerName
           ? booking.customerName.replace(/\s*\([^)]*\)/g, '').trim()
           : 'Valued Guest';
-        const waBody = `Dear ${cleanName},\n\n${message}\n\n——————\n🎟 Booking ID: ${booking.bookingId}\n💺 Seats: ${booking.allocatedSeats || 'Allocation Pending'}\n💳 Payment: ${booking.paymentStatus}\n\n— M.S. Naatyakshetra`;
 
         const res = await queueWhatsAppMessage({
           phone: booking.whatsapp || booking.phone,
           recipientName: cleanName,
-          body: waBody,
+          body: formatWhatsAppMessage({ recipientName: cleanName, message, booking }),
           source: 'BROADCAST',
           bookingRef: booking.bookingId,
           broadcastId: broadcastRow.id,

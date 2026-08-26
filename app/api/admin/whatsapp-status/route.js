@@ -21,9 +21,9 @@ export async function GET(request) {
       prisma.whatsAppMessage.count({ where: { status: 'FAILED' } }),
     ]);
 
-    const online =
-      Boolean(bridge && bridge.connected) &&
-      Date.now() - new Date(bridge.lastSeenAt).getTime() < ONLINE_WINDOW_MS;
+    const seenRecently =
+      Boolean(bridge) && Date.now() - new Date(bridge.lastSeenAt).getTime() < ONLINE_WINDOW_MS;
+    const online = Boolean(bridge && bridge.connected) && seenRecently;
 
     return NextResponse.json({
       success: true,
@@ -31,6 +31,8 @@ export async function GET(request) {
         online,
         connectedNumber: bridge ? bridge.connectedNumber : null,
         lastSeenAt: bridge ? bridge.lastSeenAt : null,
+        // Login QR is only meaningful while the bridge is alive and unlinked
+        qr: !online && seenRecently && bridge ? bridge.qrCode : null,
       },
       queue: {
         pending: pendingCount,

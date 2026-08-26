@@ -111,12 +111,16 @@ export async function POST(request) {
 
     // Queue automatic WhatsApp seat confirmation (delivered by the local bridge)
     try {
-      const { queueWhatsAppMessage } = await import('../../../../lib/whatsappQueue');
+      const { queueWhatsAppMessage, formatWhatsAppMessage } = await import('../../../../lib/whatsappQueue');
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://skandaproduction.com';
       await queueWhatsAppMessage({
         phone: updatedBooking.whatsapp || updatedBooking.phone,
         recipientName: updatedBooking.customerName,
-        body: `🎭 *Your Seats Are Confirmed — M.S. Naatyakshetra*\n\nDear ${updatedBooking.customerName},\n\nYour seat allocation for *Nritya Bharathanjali 2026 — Skanda Production* is finalized!\n\n🎟 Booking ID: ${updatedBooking.bookingId}\n💺 Allocated Seats: *${allocatedSeatsStr}*\n📅 September 26, 2026 at 5:30 PM (Doors open 5:00 PM)\n📍 Dhwani Auditorium, CMRIT College Campus, Kundalahalli, Bengaluru\n\nView & download your e-ticket: ${appUrl}/ticket/${updatedBooking.bookingId}`,
+        body: formatWhatsAppMessage({
+          recipientName: updatedBooking.customerName,
+          message: `🎉 Your seats are confirmed! Your seat allocation for the event is finalized.\n\n📅 September 26, 2026 at 5:30 PM (Doors open 5:00 PM)\n📍 Dhwani Auditorium, CMRIT College Campus, Kundalahalli, Bengaluru\n\nView & download your e-ticket: ${appUrl}/ticket/${updatedBooking.bookingId}`,
+          booking: updatedBooking,
+        }),
         source: 'SEAT_ALLOCATION',
         bookingRef: updatedBooking.bookingId,
       });

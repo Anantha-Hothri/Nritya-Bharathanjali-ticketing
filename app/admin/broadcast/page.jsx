@@ -22,7 +22,8 @@ export default function AdminBroadcastPage() {
   const [alertFeedback, setAlertFeedback] = useState(null); // { type: 'success'|'warning'|'error', text: '' }
 
   // WhatsApp Bridge Status State
-  const [waStatus, setWaStatus] = useState(null); // { bridge: { online, connectedNumber }, queue: { pending, sent, failed } }
+  const [waStatus, setWaStatus] = useState(null); // { bridge: { online, connectedNumber, qr }, queue: { pending, sent, failed } }
+  const [waQrDataUrl, setWaQrDataUrl] = useState(null);
 
   // Recipient Details Table Search
   const [recipientSearch, setRecipientSearch] = useState('');
@@ -33,9 +34,29 @@ export default function AdminBroadcastPage() {
   useEffect(() => {
     loadBookingsData();
     loadWhatsAppStatus();
-    const interval = setInterval(loadWhatsAppStatus, 15000);
+    // Poll frequently so a freshly generated login QR appears quickly
+    const interval = setInterval(loadWhatsAppStatus, 6000);
     return () => clearInterval(interval);
   }, []);
+
+  // Render the bridge's login QR payload as a scannable image
+  useEffect(() => {
+    const qr = waStatus && waStatus.bridge ? waStatus.bridge.qr : null;
+    if (!qr) {
+      setWaQrDataUrl(null);
+      return;
+    }
+    let cancelled = false;
+    import('qrcode')
+      .then((QRCode) => QRCode.toDataURL(qr, { width: 280, margin: 1 }))
+      .then((url) => {
+        if (!cancelled) setWaQrDataUrl(url);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [waStatus && waStatus.bridge ? waStatus.bridge.qr : null]);
 
   const loadWhatsAppStatus = async () => {
     try {
@@ -469,7 +490,7 @@ export default function AdminBroadcastPage() {
 
           {/* ================= SECTION 2.5 — WHATSAPP BRIDGE STATUS ================= */}
           <div
-            className={`card-gold-accent p-4 shadow-md border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+            className={`card-gold-accent p-4 shadow-md border-2 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 ${
               waStatus && waStatus.bridge && waStatus.bridge.online
                 ? 'bg-emerald-50/90 border-emerald-500'
                 : 'bg-amber-50/90 border-amber-400'
@@ -491,10 +512,28 @@ export default function AdminBroadcastPage() {
                 <div className="text-[11px] text-ink-soft mt-0.5">
                   {waStatus && waStatus.bridge && waStatus.bridge.online
                     ? 'WhatsApp messages (tickets, seat confirmations & broadcasts) are being delivered automatically.'
-                    : 'Run "npm run bridge" on your computer and scan the QR code with WhatsApp to start delivering queued messages.'}
+                    : waQrDataUrl
+                    ? 'The bridge is running and waiting for you to link WhatsApp — scan the QR code below.'
+                    : 'Run "npm run bridge" on your computer — the login QR code will appear right here for scanning.'}
                 </div>
               </div>
             </div>
+
+            {/* Login QR — shown while the bridge is running but WhatsApp is not yet linked */}
+            {waQrDataUrl && !(waStatus && waStatus.bridge && waStatus.bridge.online) && (
+              <div className="w-full flex flex-col items-center gap-2 py-3 border-t border-amber-300 order-last basis-full">
+                <img
+                  src={waQrDataUrl}
+                  alt="WhatsApp login QR code"
+                  className="w-[240px] h-[240px] rounded-lg border-4 border-white shadow-lg bg-white"
+                />
+                <div className="text-[11px] font-bold text-[#2C1810] text-center">
+                  📱 On your phone: <span className="text-emerald-800">WhatsApp → Settings → Linked Devices → Link a Device</span> and scan this code.
+                  <br />
+                  <span className="font-normal text-ink-soft">The code refreshes automatically — this panel updates by itself once connected.</span>
+                </div>
+              </div>
+            )}
 
             {waStatus && waStatus.queue && (
               <div className="flex items-center gap-3 text-[11px] font-bold font-mono">

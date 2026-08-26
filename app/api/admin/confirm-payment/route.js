@@ -79,11 +79,15 @@ export async function POST(request) {
 
     // Queue automatic WhatsApp ticket confirmation (delivered by the local bridge)
     try {
-      const { queueWhatsAppMessage } = await import('../../../../lib/whatsappQueue');
+      const { queueWhatsAppMessage, formatWhatsAppMessage } = await import('../../../../lib/whatsappQueue');
       await queueWhatsAppMessage({
         phone: updatedBooking.whatsapp || updatedBooking.phone,
         recipientName: updatedBooking.customerName,
-        body: `🎭 *M.S. Naatyakshetra — Nritya Bharathanjali 2026*\n\nDear ${updatedBooking.customerName},\n\n${confirmationMessage}`,
+        body: formatWhatsAppMessage({
+          recipientName: updatedBooking.customerName,
+          message: confirmationMessage,
+          booking: updatedBooking,
+        }),
         source: 'TICKET_CONFIRMATION',
         bookingRef: updatedBooking.bookingId,
       });
