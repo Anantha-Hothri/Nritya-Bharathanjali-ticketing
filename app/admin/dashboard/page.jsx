@@ -109,7 +109,9 @@ export default function AdminDashboardPage() {
       const dataB = await resB.json();
       if (dataB.success) {
         setMetrics(dataB.metrics);
-        setBookings(dataB.bookings);
+        // Exclude PENDING (unpaid, never-followed-up) records from the dashboard ledger —
+        // only bookings that reached UTR_SUBMITTED or PAID are real, actionable records.
+        setBookings(dataB.bookings.filter((b) => b.paymentStatus !== 'PENDING'));
       } else {
         router.push('/admin/login');
       }
@@ -290,7 +292,6 @@ export default function AdminDashboardPage() {
                   <option value="ALL">All Payments</option>
                   <option value="PAID">Paid Only</option>
                   <option value="UTR_SUBMITTED">Awaiting Manual Verification</option>
-                  <option value="PENDING">Pending Only</option>
                 </select>
               </div>
             </div>
