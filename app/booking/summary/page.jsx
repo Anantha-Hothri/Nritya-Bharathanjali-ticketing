@@ -24,6 +24,7 @@ export default function BookingSummaryPage() {
   const [bookingInfo, setBookingInfo] = useState(null); // { bookingId, ... }
   const [submitting, setSubmitting] = useState(false);
   const [utrInput, setUtrInput] = useState('');
+  const [upiCopied, setUpiCopied] = useState(false);
 
   const minTicketQty = buyerType === 'MSN' ? 3 : 1;
   const ticketPrice = capacityInfo.ticketPrice || 850;
@@ -147,6 +148,23 @@ export default function BookingSummaryPage() {
       setError('Network error. Please try again.');
       setSubmitting(false);
     }
+  };
+
+  const handleCopyUpiId = async () => {
+    if (!upiInfo || !upiInfo.upiId) return;
+    try {
+      await navigator.clipboard.writeText(upiInfo.upiId);
+    } catch (e) {
+      // Fallback for browsers without Clipboard API access
+      const textarea = document.createElement('textarea');
+      textarea.value = upiInfo.upiId;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    setUpiCopied(true);
+    setTimeout(() => setUpiCopied(false), 2000);
   };
 
   if (!customer) return null;
@@ -302,7 +320,7 @@ export default function BookingSummaryPage() {
               Complete Your UPI Payment
             </h2>
             <p className="text-sm text-ink-soft mt-1">
-              Scan the QR code or tap the button to open your UPI app. The amount is pre-filled.
+              Scan the QR code, or copy the UPI ID below and pay via your UPI app.
             </p>
           </div>
 
@@ -326,19 +344,38 @@ export default function BookingSummaryPage() {
                 className="w-56 h-56"
               />
             </div>
-            <p className="text-xs text-ink-soft">
-              Pay to: <span className="font-mono font-bold text-maroon">{upiInfo.upiId}</span>
-            </p>
+            <p className="text-xs text-ink-soft">Or pay directly using this UPI ID:</p>
+            <div className="w-full flex items-center gap-2 p-2 pl-4 rounded-lg border border-gold/60 bg-cream">
+              <span className="flex-1 font-mono font-bold text-maroon text-sm select-all">
+                {upiInfo.upiId}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyUpiId}
+                className={`px-3.5 py-2 rounded text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 transition-colors shrink-0 ${
+                  upiCopied
+                    ? 'bg-emerald-700 text-white border border-emerald-500'
+                    : 'bg-maroon text-white border border-gold hover:bg-maroon-soft'
+                }`}
+              >
+                {upiCopied ? (
+                  <>
+                    <span>✅</span>
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📋</span>
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Open UPI App button (works on mobile) */}
-          <a
-            href={upiInfo.upiDeepLink}
-            className="w-full luxe-button luxe-button-solid py-3.5 text-sm shadow-md flex items-center justify-center gap-2 no-underline text-center"
-            style={{ display: 'flex' }}
-          >
-            <span>📱 Open UPI App to Pay ₹{upiInfo.amount.toLocaleString()}</span>
-          </a>
+          <p className="text-xs text-center text-ink-soft -mt-2">
+            📸 Tip: Take a screenshot of the QR code above if you'd like to pay from a different device.
+          </p>
 
           {/* Transaction ID / UTR Input */}
           <div className="p-4 rounded-lg border border-gold/40 bg-sandal/20 space-y-2">
