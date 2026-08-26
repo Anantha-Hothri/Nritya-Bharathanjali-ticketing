@@ -84,16 +84,13 @@ export default function AdminSeatAllocationPage() {
   };
 
   // Handle clicking a seat pill on the interactive chart
-  const handleSeatClick = (seatId, seatState) => {
+  const handleSeatClick = (seatId, seatState, selectable) => {
     if (!selectedBooking) {
       setErrorMsg('Please select a booking first from the bottom panel.');
       return;
     }
 
-    if (seatState.status === 'VIP') {
-      setErrorMsg(`Seat ${seatId} is reserved for VIP/Parents and cannot be allocated.`);
-      return;
-    }
+    if (!selectable) return;
 
     const maxAllowed = selectedBooking.ticketQty;
 
@@ -192,13 +189,14 @@ export default function AdminSeatAllocationPage() {
 
   // Determine seat visual colors (🟢 Green, 🟣 Purple, 🔴 Red, ⭐ Gold)
   const getSeatState = (seatId, defaultZone, defaultStatus) => {
+    const isVipZone = defaultZone === SEATING_ZONES.VIP.name;
     const isSelectedCurrentSession = selectedSeatIds.includes(seatId);
     if (isSelectedCurrentSession) {
       return {
-        color: '#6A0DAD', // 🟣 Purple
-        label: 'Selected',
+        color: isVipZone ? '#DC2626' : '#6A0DAD', // 🔴 Red for VIP selections, 🟣 Purple otherwise
+        label: isVipZone ? 'VIP Seat Selected' : 'Selected',
         selectable: true,
-        isVip: false,
+        isVip: isVipZone,
       };
     }
 
@@ -206,11 +204,21 @@ export default function AdminSeatAllocationPage() {
     const status = dbSeat ? dbSeat.status : defaultStatus;
     const allocatedBooking = dbSeat ? dbSeat.allocatedToBookingId : null;
 
-    if (status === 'LOCKED') {
+    // VIP seats default to LOCKED status in the DB, but are still selectable for allocation
+    if (status === 'LOCKED' && !isVipZone) {
       return {
-        color: '#D4AF37', // ⭐ Gold for VIP
-        label: 'VIP',
+        color: '#1565C0', // Locked Blue (non-VIP seats reserved by admin)
+        label: 'Locked',
         selectable: false,
+        isVip: false,
+      };
+    }
+
+    if (status === 'LOCKED' && isVipZone) {
+      return {
+        color: '#D4AF37', // ⭐ Gold for VIP — available
+        label: 'VIP — Available',
+        selectable: true,
         isVip: true,
       };
     }
@@ -339,7 +347,7 @@ export default function AdminSeatAllocationPage() {
                       return (
                         <button
                           key={seatId}
-                          onClick={() => handleSeatClick(seatId, { status: stateObj.label, allocatedToBookingId: seatsMaster[seatId]?.allocatedToBookingId })}
+                          onClick={() => handleSeatClick(seatId, { status: stateObj.label, allocatedToBookingId: seatsMaster[seatId]?.allocatedToBookingId }, stateObj.selectable)}
                           disabled={!stateObj.selectable}
                           title={`Seat ${seatId} (${getSectionForSeat(rowLetter, num)}) | State: ${stateObj.label}`}
                           className={`relative w-5 h-5 sm:w-6 sm:h-6 rounded text-[8px] sm:text-[9px] font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
@@ -506,7 +514,7 @@ export default function AdminSeatAllocationPage() {
                         {selectedSeatIds.length > 0 ? selectedSeatIds.join(', ') : 'None Selected'}
                       </strong>
                       <span className="text-[10px] text-purple-700 block">
-                        Click available 🟢 green seats on the chart to select.
+                        Click available 🟢 green or ⭐ gold VIP seats on the chart to select.
                       </span>
                     </div>
                   </div>
