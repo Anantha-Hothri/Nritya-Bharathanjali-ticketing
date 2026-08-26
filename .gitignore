@@ -40,3 +40,8 @@ next-env.d.ts
 # WhatsApp Web Session & Cache
 .wwebjs_auth/
 .wwebjs_cache/
+
+# WhatsApp bridge (local delivery worker)
+bridge/node_modules/
+bridge/.env
+bridge/package-lock.json

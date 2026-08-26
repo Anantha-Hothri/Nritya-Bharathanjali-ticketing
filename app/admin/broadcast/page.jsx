@@ -18,8 +18,11 @@ export default function AdminBroadcastPage() {
   const [attachments, setAttachments] = useState([]);
 
   // Action State
-  const [sendingChannel, setSendingChannel] = useState(null); // 'EMAIL' | null
+  const [sendingChannel, setSendingChannel] = useState(null); // 'EMAIL' | 'WHATSAPP' | null
   const [alertFeedback, setAlertFeedback] = useState(null); // { type: 'success'|'warning'|'error', text: '' }
+
+  // WhatsApp Bridge Status State
+  const [waStatus, setWaStatus] = useState(null); // { bridge: { online, connectedNumber }, queue: { pending, sent, failed } }
 
   // Recipient Details Table Search
   const [recipientSearch, setRecipientSearch] = useState('');
@@ -29,7 +32,23 @@ export default function AdminBroadcastPage() {
 
   useEffect(() => {
     loadBookingsData();
+    loadWhatsAppStatus();
+    const interval = setInterval(loadWhatsAppStatus, 15000);
+    return () => clearInterval(interval);
   }, []);
+
+  const loadWhatsAppStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/whatsapp-status');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success) {
+        setWaStatus(data);
+      }
+    } catch (e) {
+      // Non-fatal — status panel simply shows offline
+    }
+  };
 
   const loadBookingsData = async () => {
     try {
@@ -162,17 +181,22 @@ export default function AdminBroadcastPage() {
       const data = await res.json();
 
       if (data.success) {
+        const isWhatsApp = channel === 'WHATSAPP';
+        const bridgeOnline = waStatus && waStatus.bridge && waStatus.bridge.online;
         if (data.failedCount === 0) {
           setAlertFeedback({
             type: 'success',
-            text: `✅ Emails sent to ${data.sentCount} recipients successfully.`,
+            text: isWhatsApp
+              ? `✅ ${data.sentCount} WhatsApp messages queued.${bridgeOnline ? ' Bridge is online — sending now.' : ' ⚠️ Bridge is OFFLINE — they will send once you start the bridge and scan the QR.'}`
+              : `✅ Emails sent to ${data.sentCount} recipients successfully.`,
           });
         } else {
           setAlertFeedback({
             type: 'warning',
-            text: `⚠️ ${data.sentCount} sent successfully. ${data.failedCount} failed — invalid numbers/emails.`,
+            text: `⚠️ ${data.sentCount} ${isWhatsApp ? 'queued' : 'sent'} successfully. ${data.failedCount} failed — invalid numbers/emails.`,
           });
         }
+        if (isWhatsApp) loadWhatsAppStatus();
       } else {
         setAlertFeedback({
           type: 'error',
@@ -443,6 +467,50 @@ export default function AdminBroadcastPage() {
             )}
           </div>
 
+          {/* ================= SECTION 2.5 — WHATSAPP BRIDGE STATUS ================= */}
+          <div
+            className={`card-gold-accent p-4 shadow-md border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+              waStatus && waStatus.bridge && waStatus.bridge.online
+                ? 'bg-emerald-50/90 border-emerald-500'
+                : 'bg-amber-50/90 border-amber-400'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{waStatus && waStatus.bridge && waStatus.bridge.online ? '🟢' : '🔴'}</span>
+              <div>
+                <div className="text-sm font-bold text-[#2C1810]">
+                  WhatsApp Bridge:{' '}
+                  {waStatus && waStatus.bridge && waStatus.bridge.online ? (
+                    <span className="text-emerald-700">
+                      CONNECTED{waStatus.bridge.connectedNumber ? ` (+${waStatus.bridge.connectedNumber})` : ''}
+                    </span>
+                  ) : (
+                    <span className="text-red-700">OFFLINE</span>
+                  )}
+                </div>
+                <div className="text-[11px] text-ink-soft mt-0.5">
+                  {waStatus && waStatus.bridge && waStatus.bridge.online
+                    ? 'WhatsApp messages (tickets, seat confirmations & broadcasts) are being delivered automatically.'
+                    : 'Run "npm run bridge" on your computer and scan the QR code with WhatsApp to start delivering queued messages.'}
+                </div>
+              </div>
+            </div>
+
+            {waStatus && waStatus.queue && (
+              <div className="flex items-center gap-3 text-[11px] font-bold font-mono">
+                <span className="px-2.5 py-1 rounded bg-amber-100 border border-amber-300 text-amber-900">
+                  ⏳ Queued: {waStatus.queue.pending}
+                </span>
+                <span className="px-2.5 py-1 rounded bg-emerald-100 border border-emerald-300 text-emerald-900">
+                  ✅ Sent: {waStatus.queue.sent}
+                </span>
+                <span className="px-2.5 py-1 rounded bg-red-100 border border-red-300 text-red-900">
+                  ❌ Failed: {waStatus.queue.failed}
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* ================= SECTION 3 — SEND BUTTONS ================= */}
           <div className="card-gold-accent p-6 bg-white/90 shadow-md border-2 border-[#D4AF37] flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-ink-soft">
@@ -450,6 +518,24 @@ export default function AdminBroadcastPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+              {/* WhatsApp Broadcast Send Button */}
+              <button
+                onClick={() => handleSendBroadcast('WHATSAPP')}
+                disabled={sendingChannel !== null || !message.trim() || matchedCount === 0}
+                className={`flex-1 sm:flex-initial px-6 py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border-2 ${
+                  sendingChannel !== null || !message.trim() || matchedCount === 0
+                    ? 'bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed'
+                    : 'bg-emerald-700 hover:bg-emerald-800 text-white border-emerald-400 cursor-pointer hover:scale-[1.02]'
+                }`}
+              >
+                <span className="text-base">💬</span>
+                <span>
+                  {sendingChannel === 'WHATSAPP'
+                    ? 'Queueing WhatsApp...'
+                    : `Send WhatsApp to ${matchedCount} people`}
+                </span>
+              </button>
+
               {/* Email Broadcast Send Button */}
               <button
                 onClick={() => handleSendBroadcast('EMAIL')}

@@ -53,6 +53,37 @@ model Ticket {
   issuedAt   DateTime @default(now())
 }
 
+model WhatsAppBroadcast {
+  id              String            @id @default(uuid())
+  attachmentsJson String            @default("[]") // JSON array of { name, type, data(base64 URI) }
+  createdAt       DateTime          @default(now())
+  messages        WhatsAppMessage[]
+}
+
+model WhatsAppMessage {
+  id            String             @id @default(uuid())
+  phone         String             // Normalized digits with country code e.g. "919876543210"
+  recipientName String?
+  body          String
+  source        String             @default("BROADCAST") // "BROADCAST" | "TICKET_CONFIRMATION" | "SEAT_ALLOCATION"
+  bookingRef    String?            // Public booking ID e.g. SKD-2026-9B3F
+  broadcastId   String?
+  broadcast     WhatsAppBroadcast? @relation(fields: [broadcastId], references: [id], onDelete: SetNull)
+  status        String             @default("PENDING") // "PENDING" | "SENDING" | "SENT" | "FAILED"
+  attempts      Int                @default(0)
+  error         String?
+  createdAt     DateTime           @default(now())
+  claimedAt     DateTime?
+  sentAt        DateTime?
+}
+
+model WhatsAppBridge {
+  id              String   @id @default("bridge")
+  connected       Boolean  @default(false)
+  connectedNumber String?
+  lastSeenAt      DateTime @default(now())
+}
+
 model Seat {
   id                   String    @id @default(uuid())
   seatId               String    @unique // e.g. "G15", "A1", "C05"

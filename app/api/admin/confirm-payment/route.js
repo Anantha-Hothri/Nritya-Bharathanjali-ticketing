@@ -61,12 +61,12 @@ export async function POST(request) {
       createdTickets.push(ticket);
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://skandaproduction.com';
+    const confirmationMessage = `✅ Your payment of ₹${updatedBooking.totalAmount.toLocaleString('en-IN')} has been confirmed!\n\nYour ${updatedBooking.ticketQty} ticket(s) for M.S. Naatyakshetra – Nritya Bharathanjali 2026 are now booked.\n\nView & download your e-ticket: ${appUrl}/ticket/${updatedBooking.bookingId}`;
+
     // Send Email receipt notification
     try {
       const { sendBroadcastNotification } = await import('../../../../lib/notificationService');
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://skandaproduction.com';
-      const confirmationMessage = `✅ Your payment of ₹${updatedBooking.totalAmount.toLocaleString('en-IN')} has been confirmed!\n\nYour ${updatedBooking.ticketQty} ticket(s) for M.S. Naatyakshetra – Nritya Bharathanjali 2026 are now booked.\n\nView & download your e-ticket: ${appUrl}/ticket/${updatedBooking.bookingId}`;
-
       await sendBroadcastNotification({
         channel: 'EMAIL',
         booking: updatedBooking,
@@ -75,6 +75,20 @@ export async function POST(request) {
       });
     } catch (notifyErr) {
       console.warn('Notification send warning (non-fatal):', notifyErr.message);
+    }
+
+    // Queue automatic WhatsApp ticket confirmation (delivered by the local bridge)
+    try {
+      const { queueWhatsAppMessage } = await import('../../../../lib/whatsappQueue');
+      await queueWhatsAppMessage({
+        phone: updatedBooking.whatsapp || updatedBooking.phone,
+        recipientName: updatedBooking.customerName,
+        body: `🎭 *M.S. Naatyakshetra — Nritya Bharathanjali 2026*\n\nDear ${updatedBooking.customerName},\n\n${confirmationMessage}`,
+        source: 'TICKET_CONFIRMATION',
+        bookingRef: updatedBooking.bookingId,
+      });
+    } catch (waErr) {
+      console.warn('WhatsApp queue warning (non-fatal):', waErr.message);
     }
 
     return NextResponse.json({

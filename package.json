@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "node --env-file=.env prisma/seed.js"
+    "db:seed": "node --env-file=.env prisma/seed.js",
+    "bridge": "npm --prefix bridge install && node bridge/index.js"
   },
   "dependencies": {
     "@phonepe-pg/pg-sdk-node": "^2.0.6",

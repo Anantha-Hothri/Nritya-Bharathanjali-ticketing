@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
 import { getAdminSession } from '../../../../lib/adminAuth';
 import { sendBroadcastNotification } from '../../../../lib/notificationService';
+import { queueWhatsAppMessage } from '../../../../lib/whatsappQueue';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const {
-      channel = 'EMAIL', // 'EMAIL'
+      channel = 'EMAIL', // 'EMAIL' | 'WHATSAPP'
       studentType = 'BOTH', // 'MSN' | 'EXTERNAL' | 'BOTH'
       paymentStatus = 'BOTH', // 'PAID' | 'UNPAID' | 'BOTH'
       seatAllocation = 'BOTH', // 'ALLOCATED' | 'NOT_ALLOCATED' | 'BOTH'
@@ -69,6 +70,52 @@ export async function POST(request) {
     let sentCount = 0;
     let failedCount = 0;
     const details = [];
+
+    // WhatsApp channel: queue messages for the local whatsapp-web.js bridge to deliver
+    if (channel === 'WHATSAPP') {
+      const broadcastRow = await prisma.whatsAppBroadcast.create({
+        data: { attachmentsJson: JSON.stringify(attachments || []) },
+      });
+
+      for (const booking of matchedBookings) {
+        const cleanName = booking.customerName
+          ? booking.customerName.replace(/\s*\([^)]*\)/g, '').trim()
+          : 'Valued Guest';
+        const waBody = `Dear ${cleanName},\n\n${message}\n\n——————\n🎟 Booking ID: ${booking.bookingId}\n💺 Seats: ${booking.allocatedSeats || 'Allocation Pending'}\n💳 Payment: ${booking.paymentStatus}\n\n— M.S. Naatyakshetra`;
+
+        const res = await queueWhatsAppMessage({
+          phone: booking.whatsapp || booking.phone,
+          recipientName: cleanName,
+          body: waBody,
+          source: 'BROADCAST',
+          bookingRef: booking.bookingId,
+          broadcastId: broadcastRow.id,
+        });
+
+        if (res.success) {
+          sentCount++;
+          details.push({ bookingId: booking.bookingId, customerName: booking.customerName, status: 'QUEUED' });
+        } else {
+          failedCount++;
+          details.push({
+            bookingId: booking.bookingId,
+            customerName: booking.customerName,
+            status: 'FAILED',
+            reason: res.reason || 'Invalid WhatsApp number',
+          });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        channel,
+        totalMatched,
+        sentCount,
+        failedCount,
+        queued: true,
+        details,
+      });
+    }
 
     // Send notifications to each recipient
     for (const booking of matchedBookings) {
