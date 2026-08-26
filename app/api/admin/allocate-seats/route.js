@@ -52,12 +52,7 @@ export async function POST(request) {
     });
 
     for (const seat of seatsToAllocate) {
-      if (seat.status === 'LOCKED') {
-        return NextResponse.json(
-          { success: false, error: `Seat ${seat.seatId} is a locked VIP seat and cannot be allocated.` },
-          { status: 400 }
-        );
-      }
+      // VIP seats default to LOCKED status but are intentionally allocatable via the admin seating chart
       if (seat.status === 'ALLOCATED' && seat.allocatedToBookingId !== booking.id) {
         return NextResponse.json(
           { success: false, error: `Seat ${seat.seatId} is already allocated to another booking.` },

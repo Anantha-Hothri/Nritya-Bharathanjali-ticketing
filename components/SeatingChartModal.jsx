@@ -48,8 +48,8 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
     }
   };
 
-  const handleSeatClick = (seatId, seatData) => {
-    if (seatData.status === 'LOCKED') return;
+  const handleSeatClick = (seatId, seatData, selectable) => {
+    if (!selectable) return;
     if (seatData.status === 'ALLOCATED' && seatData.allocatedToBookingId !== booking.id) return;
 
     if (selectedSeats.includes(seatId)) {
@@ -109,12 +109,13 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
   const getSeatColorAndState = (seatId, defaultZone, defaultStatus) => {
     const dbSeat = allSeatsMap[seatId];
     const isCurrentlySelected = selectedSeats.includes(seatId);
+    const isVip = defaultZone === SEATING_ZONES.VIP.name;
 
     if (isCurrentlySelected) {
       return {
-        bgColor: '#6A0DAD', // Purple for selected
+        bgColor: isVip ? '#DC2626' : '#6A0DAD', // Red for selected VIP, Purple for other selections
         textColor: '#FFFFFF',
-        statusText: 'SELECTED',
+        statusText: isVip ? 'VIP SEAT SELECTED' : 'SELECTED',
         selectable: true,
       };
     }
@@ -122,12 +123,22 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
     const currentStatus = dbSeat ? dbSeat.status : defaultStatus;
     const allocatedBooking = dbSeat ? dbSeat.allocatedToBookingId : null;
 
-    if (currentStatus === 'LOCKED') {
+    // VIP seats default to LOCKED status in the DB, but are still selectable for allocation
+    if (currentStatus === 'LOCKED' && !isVip) {
       return {
-        bgColor: '#1565C0', // Locked VIP Blue
+        bgColor: '#1565C0', // Locked Blue (non-VIP seats reserved by admin)
         textColor: '#FFFFFF',
-        statusText: 'LOCKED VIP',
+        statusText: 'LOCKED',
         selectable: false,
+      };
+    }
+
+    if (currentStatus === 'LOCKED' && isVip) {
+      return {
+        bgColor: SEATING_ZONES.VIP.color, // Gold
+        textColor: '#111827',
+        statusText: 'VIP SEAT — AVAILABLE',
+        selectable: true,
       };
     }
 
@@ -295,7 +306,7 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
                   return (
                     <button
                       key={seatId}
-                      onClick={() => handleSeatClick(seatId, { status: stateObj.statusText, allocatedToBookingId: allSeatsMap[seatId]?.allocatedToBookingId })}
+                      onClick={() => handleSeatClick(seatId, { status: stateObj.statusText, allocatedToBookingId: allSeatsMap[seatId]?.allocatedToBookingId }, stateObj.selectable)}
                       disabled={!stateObj.selectable}
                       title={`Seat ${seatId} (${getSectionForSeat(rowLetter, num)}) | State: ${stateObj.statusText}`}
                       className={`relative w-6 h-6 sm:w-7 sm:h-7 rounded text-[8px] sm:text-[9px] font-mono font-bold flex items-center justify-center shrink-0 transition-all ${
