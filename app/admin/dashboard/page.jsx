@@ -33,6 +33,7 @@ export default function AdminDashboardPage() {
   const [activeBooking, setActiveBooking] = useState(null);
   const [showSeatingChart, setShowSeatingChart] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   // Add Manual Person Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -120,10 +121,6 @@ export default function AdminDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleExportExcel = () => {
-    window.open('/api/admin/export-excel', '_blank');
   };
 
   const cleanName = (name) => {
@@ -222,6 +219,42 @@ export default function AdminDashboardPage() {
       filteredPaidBuyers += 1;
     }
   });
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/admin/export-excel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookings: filteredBookings,
+          filters: { categoryFilter, paymentFilter, allocationFilter, searchQuery },
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        triggerToast(`❌ Export failed: ${data.error || 'Server error.'}`);
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Nritya_Bharathanjali_Bookings_${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      triggerToast(`📥 Exported ${filteredBookings.length} record(s) matching the current view.`);
+    } catch (e) {
+      triggerToast('❌ Network error exporting to Excel.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="py-8 px-6 sm:px-10 max-w-[1600px] mx-auto min-h-screen">
@@ -358,9 +391,10 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   onClick={handleExportExcel}
-                  className="px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded border border-gold bg-[#6B1A2B] text-ivory hover:bg-maroon-soft shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                  disabled={exporting}
+                  className="px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded border border-gold bg-[#6B1A2B] text-ivory hover:bg-maroon-soft shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  📥 Export to Excel
+                  {exporting ? '⏳ Exporting...' : `📥 Export ${filteredBookings.length} to Excel`}
                 </button>
               </div>
             </div>
