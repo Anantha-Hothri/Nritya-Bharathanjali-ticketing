@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
-export default function BookingDrawer({ booking, onClose, onOpenSeatingChart }) {
+export default function BookingDrawer({ booking, onClose, onOpenSeatingChart, onDeleted }) {
   if (!booking) return null;
+
+  const [deleting, setDeleting] = useState(false);
 
   const isAllocated = booking.allocationStatus === 'ALLOCATED' && booking.allocatedSeats;
   const allocatedSeatsList = isAllocated ? booking.allocatedSeats.split(',').map((s) => s.trim()) : [];
@@ -11,6 +13,34 @@ export default function BookingDrawer({ booking, onClose, onOpenSeatingChart }) 
   const cleanName = (name) => {
     if (!name) return '';
     return name.replace(/\s*\([^)]*\)/g, '').trim();
+  };
+
+  const handleDelete = async () => {
+    const confirmText = isAllocated
+      ? `Delete booking ${booking.bookingId} (${cleanName(booking.customerName)})?\n\nThis will permanently remove the booking and its ticket(s), and free seats ${booking.allocatedSeats} back to Available.\n\nThis cannot be undone.`
+      : `Delete booking ${booking.bookingId} (${cleanName(booking.customerName)})?\n\nThis will permanently remove the booking and its ticket(s).\n\nThis cannot be undone.`;
+
+    if (!window.confirm(confirmText)) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/admin/delete-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (onDeleted) onDeleted(booking, data);
+        onClose();
+      } else {
+        window.alert(data.error || 'Failed to delete booking.');
+        setDeleting(false);
+      }
+    } catch (e) {
+      window.alert('Network error deleting booking.');
+      setDeleting(false);
+    }
   };
 
   return (
@@ -158,19 +188,29 @@ export default function BookingDrawer({ booking, onClose, onOpenSeatingChart }) 
         </div>
 
         {/* Drawer Footer Actions */}
-        <div className="p-5 bg-cream border-t border-[#D4AF37]/40 flex gap-3">
+        <div className="p-5 bg-cream border-t border-[#D4AF37]/40 flex flex-col gap-3">
+          <div className="flex gap-3">
+            <button
+              onClick={() => onOpenSeatingChart(booking)}
+              className="flex-1 py-3 px-4 rounded-lg bg-[#6B1A2B] hover:bg-[#8B2338] text-[#FAF6EF] text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border border-[#D4AF37]"
+            >
+              <span>🪑</span>
+              <span>{isAllocated ? 'RE-ALLOCATE / EDIT SEATS' : 'ALLOCATE SEATS NOW'}</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="py-3 px-4 rounded-lg bg-white hover:bg-sandal text-[#6B1A2B] text-xs font-bold uppercase tracking-wider border border-gold/60 transition-colors"
+            >
+              CLOSE
+            </button>
+          </div>
           <button
-            onClick={() => onOpenSeatingChart(booking)}
-            className="flex-1 py-3 px-4 rounded-lg bg-[#6B1A2B] hover:bg-[#8B2338] text-[#FAF6EF] text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border border-[#D4AF37]"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="py-2.5 px-4 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 text-xs font-bold uppercase tracking-wider border border-red-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <span>🪑</span>
-            <span>{isAllocated ? 'RE-ALLOCATE / EDIT SEATS' : 'ALLOCATE SEATS NOW'}</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="py-3 px-4 rounded-lg bg-white hover:bg-sandal text-[#6B1A2B] text-xs font-bold uppercase tracking-wider border border-gold/60 transition-colors"
-          >
-            CLOSE
+            <span>🗑️</span>
+            <span>{deleting ? 'Deleting...' : 'Delete Booking'}</span>
           </button>
         </div>
       </div>

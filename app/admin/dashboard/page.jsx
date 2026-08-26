@@ -146,6 +146,18 @@ export default function AdminDashboardPage() {
     setShowSeatingChart(true);
   };
 
+  const handleBookingDeleted = (deletedBooking, result) => {
+    setBookings((prev) => prev.filter((b) => b.id !== deletedBooking.id));
+    setActiveBooking(null);
+    triggerToast(
+      `🗑️ Booking ${result.deletedBookingId} deleted.${
+        result.freedSeatCount > 0 ? ` ${result.freedSeatCount} seat(s) freed back to Available.` : ''
+      }`
+    );
+    // Refresh from server so metrics (collections, tickets sold, etc.) recompute against the live data
+    loadAllAdminData();
+  };
+
   const handleSeatAllocationSuccess = (updatedBooking, allocatedSeatsList) => {
     // Update local bookings state immediately
     const nextBookingsList = bookings.map((b) => (b.id === updatedBooking.id ? updatedBooking : b));
@@ -466,6 +478,7 @@ export default function AdminDashboardPage() {
           booking={activeBooking}
           onClose={() => setActiveBooking(null)}
           onOpenSeatingChart={handleOpenSeatingChartFromDrawer}
+          onDeleted={handleBookingDeleted}
         />
       )}
 
