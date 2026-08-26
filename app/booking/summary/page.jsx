@@ -374,7 +374,7 @@ export default function BookingSummaryPage() {
           </div>
 
           <p className="text-xs text-center text-ink-soft -mt-2">
-            📸 Tip: Take a screenshot of the QR code above if you'd like to pay from a different device.
+            ⚠️ If you are buying 5 tickets or more, the QR code might not work — either scan it with a different phone, or enter the UPI ID above directly in your UPI app and pay.
           </p>
 
           {/* Transaction ID / UTR Input */}
