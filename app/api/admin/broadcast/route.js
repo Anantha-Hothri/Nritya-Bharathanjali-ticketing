@@ -52,7 +52,6 @@ export async function POST(request) {
       whereConditions.push({
         OR: [
           { allocationStatus: { not: 'ALLOCATED' } },
-          { allocatedSeats: null },
           { allocatedSeats: '' },
         ],
       });
