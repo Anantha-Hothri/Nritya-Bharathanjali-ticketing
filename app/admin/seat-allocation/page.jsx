@@ -215,10 +215,11 @@ export default function AdminSeatAllocationPage() {
     }
 
     if (status === 'LOCKED' && isVipZone) {
+      const bookingIsBackRow = selectedBooking?.seatTier === 'BACK_ROW';
       return {
         color: '#D4AF37', // ⭐ Gold for VIP — available
-        label: 'VIP — Available',
-        selectable: true,
+        label: bookingIsBackRow ? 'VIP — Back Row bookings not permitted here' : 'VIP — Available',
+        selectable: !bookingIsBackRow,
         isVip: true,
       };
     }
@@ -232,13 +233,14 @@ export default function AdminSeatAllocationPage() {
       };
     }
 
-    // Back-row seats (Rows Q & R) — teal, selectable
+    // Back-row seats (Rows Q & R) — only selectable for BACK_ROW bookings
     const isBackRow = defaultZone === SEATING_ZONES.BACK_ROW.name;
+    const bookingIsBackRow = selectedBooking?.seatTier === 'BACK_ROW';
     if (isBackRow && status !== 'ALLOCATED') {
       return {
         color: SEATING_ZONES.BACK_ROW.color, // Teal
-        label: 'Back Row — Available',
-        selectable: true,
+        label: bookingIsBackRow ? 'Back Row — Available' : 'Back Row — Standard bookings not permitted here',
+        selectable: bookingIsBackRow,
         isVip: false,
       };
     }
@@ -260,10 +262,11 @@ export default function AdminSeatAllocationPage() {
       };
     }
 
+    // Standard available seats — only selectable for STANDARD bookings
     return {
       color: '#16A34A', // 🟢 Green for Available
-      label: 'Available',
-      selectable: true,
+      label: bookingIsBackRow ? 'Standard seat — Back Row bookings not permitted here' : 'Available',
+      selectable: !bookingIsBackRow,
       isVip: false,
     };
   };

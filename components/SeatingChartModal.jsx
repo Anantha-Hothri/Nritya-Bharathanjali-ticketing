@@ -134,11 +134,12 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
     }
 
     if (currentStatus === 'LOCKED' && isVip) {
+      const bookingIsBackRow = booking.seatTier === 'BACK_ROW';
       return {
         bgColor: SEATING_ZONES.VIP.color, // Gold
         textColor: '#111827',
-        statusText: 'VIP SEAT — AVAILABLE',
-        selectable: true,
+        statusText: bookingIsBackRow ? 'VIP SEAT — NOT FOR THIS BOOKING' : 'VIP SEAT — AVAILABLE',
+        selectable: !bookingIsBackRow,
       };
     }
 
@@ -151,14 +152,15 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
       };
     }
 
-    // Back-row seats (Rows Q & R) — teal, selectable
+    // Back-row seats (Rows Q & R) — only selectable for BACK_ROW bookings
     const isBackRow = defaultZone === SEATING_ZONES.BACK_ROW.name;
+    const bookingIsBackRow = booking.seatTier === 'BACK_ROW';
     if (isBackRow && currentStatus !== 'ALLOCATED') {
       return {
         bgColor: SEATING_ZONES.BACK_ROW.color, // Teal
         textColor: '#FFFFFF',
-        statusText: 'BACK ROW — AVAILABLE (₹500)',
-        selectable: true,
+        statusText: bookingIsBackRow ? 'BACK ROW — AVAILABLE (₹500)' : 'BACK ROW — NOT FOR THIS BOOKING',
+        selectable: bookingIsBackRow,
       };
     }
 
@@ -179,12 +181,13 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
       };
     }
 
-    const zoneObj = Object.values(SEATING_ZONES).find((z) => z.name === defaultZone) || SEATING_ZONES.PARENTS;
+    // Standard available seats — only selectable for STANDARD bookings
+    const zoneObj = Object.values(SEATING_ZONES).find((z) => z.name === defaultZone) || SEATING_ZONES.GENERAL;
     return {
       bgColor: zoneObj.color,
-      textColor: zoneObj.color === '#D1D5DB' || zoneObj.color === '#D4AF37' || zoneObj.color === '#FA8072' || zoneObj.color === '#00CED1' || zoneObj.color === '#3CB371' ? '#111827' : '#FFFFFF',
-      statusText: 'AVAILABLE',
-      selectable: true,
+      textColor: '#FFFFFF',
+      statusText: bookingIsBackRow ? 'STANDARD SEAT — NOT FOR THIS BOOKING' : 'AVAILABLE',
+      selectable: !bookingIsBackRow,
     };
   };
 
