@@ -151,6 +151,17 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
       };
     }
 
+    // Back-row seats (Rows Q & R) — teal, selectable
+    const isBackRow = defaultZone === SEATING_ZONES.BACK_ROW.name;
+    if (isBackRow && currentStatus !== 'ALLOCATED') {
+      return {
+        bgColor: SEATING_ZONES.BACK_ROW.color, // Teal
+        textColor: '#FFFFFF',
+        statusText: 'BACK ROW — AVAILABLE (₹500)',
+        selectable: true,
+      };
+    }
+
     if (currentStatus === 'ALLOCATED') {
       if (allocatedBooking === booking.id) {
         return {
@@ -409,6 +420,10 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
             <div className="flex items-center gap-1.5">
               <span className="w-3.5 h-3.5 rounded bg-[#D4AF37] border border-black/20" />
               <span className="text-[11px] text-black font-bold">VIP</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 rounded bg-[#0D9488] border border-black/20" />
+              <span className="text-[11px] text-black font-bold">Back Row (Q&R)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3.5 h-3.5 rounded bg-[#4B5563] border border-black/20" />

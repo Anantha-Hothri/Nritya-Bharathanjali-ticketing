@@ -17,10 +17,12 @@ export async function POST(request) {
       isWhatsappSame,
       email,
       ticketQty,
+      seatTier,
     } = bookingData;
 
     const qty = Number(ticketQty);
     const category = buyerType === 'MSN' ? 'MSN' : 'EXTERNAL';
+    const tier = seatTier === 'BACK_ROW' ? 'BACK_ROW' : 'STANDARD';
 
     if (!customerName || !phone || !email || isNaN(qty) || qty < 1) {
       return NextResponse.json(
@@ -38,12 +40,19 @@ export async function POST(request) {
     }
 
     const TOTAL_EVENT_CAPACITY = 645;
+    const BACK_ROW_CAPACITY = 45;
 
     // Server-side capacity validation against 645 total limit
-    const paidBookings = await prisma.booking.aggregate({
-      where: { paymentStatus: 'PAID' },
-      _sum: { ticketQty: true },
-    });
+    const [paidBookings, backRowBookings] = await Promise.all([
+      prisma.booking.aggregate({
+        where: { paymentStatus: 'PAID' },
+        _sum: { ticketQty: true },
+      }),
+      prisma.booking.aggregate({
+        where: { paymentStatus: 'PAID', seatTier: 'BACK_ROW' },
+        _sum: { ticketQty: true },
+      }),
+    ]);
 
     const currentBooked = paidBookings._sum.ticketQty || 0;
     const remaining = Math.max(0, TOTAL_EVENT_CAPACITY - currentBooked);
@@ -61,7 +70,25 @@ export async function POST(request) {
       );
     }
 
-    const ticketPrice = 850.0;
+    // Back-row sub-capacity check (max 45 seats across rows Q & R)
+    if (tier === 'BACK_ROW') {
+      const backRowBooked = backRowBookings._sum.ticketQty || 0;
+      const backRowRemaining = Math.max(0, BACK_ROW_CAPACITY - backRowBooked);
+      if (qty > backRowRemaining) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              backRowRemaining > 0
+                ? `Only ${backRowRemaining} back-row seats remaining. Please choose Standard seats or reduce quantity.`
+                : `Sorry, all back-row seats (Rows Q & R) are sold out. Please choose Standard seats instead.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const ticketPrice = tier === 'BACK_ROW' ? 500.0 : 850.0;
     const totalAmount = qty * ticketPrice;
 
     // Generate Unique Public Booking ID e.g. SKD-2026-9B3F
@@ -76,6 +103,8 @@ export async function POST(request) {
       data: {
         bookingId: publicBookingId,
         buyerType: category,
+        seatTier: tier,
+        ticketPrice,
         customerName: customerName.trim(),
         studentName: bookingData.studentName ? bookingData.studentName.trim() : null,
         phone: phone.trim(),

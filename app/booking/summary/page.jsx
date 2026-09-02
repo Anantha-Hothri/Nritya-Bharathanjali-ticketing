@@ -8,6 +8,7 @@ export default function BookingSummaryPage() {
 
   const [customer, setCustomer] = useState(null);
   const [buyerType, setBuyerType] = useState('EXTERNAL');
+  const [seatTier, setSeatTier] = useState('STANDARD');
   const [ticketQty, setTicketQty] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,6 +17,8 @@ export default function BookingSummaryPage() {
     remainingTickets: 645,
     isSoldOut: false,
     ticketPrice: 850,
+    standardPrice: 850,
+    backRowPrice: 500,
   });
 
   // UPI payment state
@@ -27,7 +30,10 @@ export default function BookingSummaryPage() {
   const [upiCopied, setUpiCopied] = useState(false);
 
   const minTicketQty = buyerType === 'MSN' ? 3 : 1;
-  const ticketPrice = capacityInfo.ticketPrice || 850;
+  const isBackRow = seatTier === 'BACK_ROW';
+  const ticketPrice = isBackRow
+    ? (capacityInfo.backRowPrice || 500)
+    : (capacityInfo.standardPrice || capacityInfo.ticketPrice || 850);
 
   useEffect(() => {
     const savedCustomer = sessionStorage.getItem('skanda_customer_login');
@@ -44,6 +50,9 @@ export default function BookingSummaryPage() {
     const savedType = sessionStorage.getItem('skanda_buyer_type') || 'EXTERNAL';
     setBuyerType(savedType);
     setTicketQty(savedType === 'MSN' ? 3 : 1);
+
+    const savedTier = sessionStorage.getItem('skanda_seat_tier') || 'STANDARD';
+    setSeatTier(savedTier);
 
     fetchCapacityInfo();
   }, [router]);
@@ -72,6 +81,7 @@ export default function BookingSummaryPage() {
 
     const payload = {
       buyerType,
+      seatTier,
       customerName: customer.customerName,
       studentName: sessionStorage.getItem('skanda_student_name') || null,
       phone: customer.phone,
@@ -139,6 +149,7 @@ export default function BookingSummaryPage() {
         sessionStorage.removeItem('skanda_customer_login');
         sessionStorage.removeItem('skanda_buyer_type');
         sessionStorage.removeItem('skanda_student_name');
+        sessionStorage.removeItem('skanda_seat_tier');
         router.push(`/booking/pending?id=${bookingInfo.bookingId}`);
       } else {
         setError(data.error || 'Failed to record payment. Please contact support.');
@@ -181,7 +192,7 @@ export default function BookingSummaryPage() {
           ✓ 1. Contact Details
         </div>
         <div className="opacity-60 cursor-pointer" onClick={() => router.push('/booking/select-type')}>
-          ✓ 2. Category ({buyerType === 'MSN' ? 'MSN' : 'External'})
+          ✓ 2. Category ({buyerType === 'MSN' ? 'MSN' : 'External'} · {isBackRow ? 'Back Row' : 'Standard'})
         </div>
         <div className="flex items-center gap-2 text-maroon font-bold">
           <span className="step-badge">3</span>
@@ -227,6 +238,12 @@ export default function BookingSummaryPage() {
                 <span className="text-xs text-ink-soft block uppercase">ATTENDEE CATEGORY</span>
                 <span className="font-bold text-maroon flex items-center gap-1">
                   {buyerType === 'MSN' ? '🎭 MSN' : '🎟️ External Attendee'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-ink-soft block uppercase">SEAT SECTION</span>
+                <span className={`font-bold flex items-center gap-1 ${isBackRow ? 'text-teal-700' : 'text-maroon'}`}>
+                  {isBackRow ? '🏛️ Back Row (Q & R)' : '🪑 Standard Seats'}
                 </span>
               </div>
               <div>
@@ -287,6 +304,16 @@ export default function BookingSummaryPage() {
               <span className="font-num text-3xl font-bold">₹{totalAmount.toLocaleString()}</span>
             </div>
           </div>
+
+          {/* Back Row Info Banner */}
+          {isBackRow && (
+            <div className="p-3 rounded-lg bg-teal-50 border border-teal-300 text-teal-800 text-xs font-semibold flex items-start gap-2">
+              <span className="text-base">🏛️</span>
+              <span>
+                <strong>Back Row Seats Selected (₹500/ticket).</strong> Your seats will be in Rows Q or R at the back of the auditorium. Exact seat assignments are made by our team before the event and sent to you.
+              </span>
+            </div>
+          )}
 
           {/* CTA */}
           <button

@@ -30,6 +30,8 @@ model Booking {
   email                 String
   ticketQty             Int
   totalAmount           Float
+  seatTier              String    @default("STANDARD") // "STANDARD" | "BACK_ROW"
+  ticketPrice           Float     @default(850)        // Per-ticket price at time of booking
   paymentStatus         String    @default("PENDING") // "PENDING" | "PAID" | "FAILED"
   paymentId             String?   // PhonePe Provider Reference ID
   merchantTransactionId String?   @unique // PhonePe Merchant Transaction ID

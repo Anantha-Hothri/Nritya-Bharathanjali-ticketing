@@ -8,11 +8,16 @@ export default function BuyerTypeSelectPage() {
   const [customer, setCustomer] = useState(null);
   const [studentName, setStudentName] = useState('');
   const [showStudentInput, setShowStudentInput] = useState(false);
+  const [selectedBuyerType, setSelectedBuyerType] = useState(null); // set after MSN/EXTERNAL chosen
+  const [showTierSelect, setShowTierSelect] = useState(false);
   const [error, setError] = useState('');
   const [capacityInfo, setCapacityInfo] = useState({
     totalCapacity: 645,
     remainingTickets: 645,
     isSoldOut: false,
+    standardPrice: 850,
+    backRowPrice: 500,
+    backRowRemaining: 45,
   });
 
   useEffect(() => {
@@ -44,12 +49,13 @@ export default function BuyerTypeSelectPage() {
 
   const handleSelectType = (type) => {
     setError('');
+    setSelectedBuyerType(type);
     if (type === 'MSN') {
       setShowStudentInput(true);
+      setShowTierSelect(false);
     } else {
-      sessionStorage.setItem('skanda_buyer_type', 'EXTERNAL');
-      sessionStorage.removeItem('skanda_student_name');
-      router.push('/booking/summary');
+      setShowStudentInput(false);
+      setShowTierSelect(true);
     }
   };
 
@@ -62,14 +68,22 @@ export default function BuyerTypeSelectPage() {
     }
     sessionStorage.setItem('skanda_buyer_type', 'MSN');
     sessionStorage.setItem('skanda_student_name', studentName.trim());
+    setShowStudentInput(false);
+    setShowTierSelect(true);
+  };
+
+  const handleSelectTier = (tier) => {
+    sessionStorage.setItem('skanda_buyer_type', selectedBuyerType);
+    sessionStorage.setItem('skanda_seat_tier', tier);
     router.push('/booking/summary');
   };
 
   if (!customer) return null;
 
-  const { isSoldOut, remainingTickets } = capacityInfo;
+  const { isSoldOut, remainingTickets, backRowRemaining, standardPrice, backRowPrice } = capacityInfo;
   const disableMsn = isSoldOut || remainingTickets < 3;
   const disableExt = isSoldOut || remainingTickets < 1;
+  const disableBackRow = isSoldOut || backRowRemaining <= 0;
 
   return (
     <div className="py-12 px-6 sm:px-10 max-w-4xl mx-auto" style={{ background: 'var(--ivory)' }}>
@@ -165,7 +179,82 @@ export default function BuyerTypeSelectPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      {/* Seat Tier Selector — shown after buyer type is confirmed */}
+      {showTierSelect && (
+        <div className="card-gold-accent p-6 mb-8 max-w-xl mx-auto border-2 border-gold bg-[#FDFBF7] shadow-xl animate-fadeIn space-y-4">
+          <div className="text-center pb-2 border-b border-gold/30">
+            <h3 className="font-serif-display text-xl font-bold text-maroon">
+              Choose Your Seat Section
+            </h3>
+            <p className="text-xs text-ink-soft mt-1">
+              Select the seating area that suits your preference. Exact seats are assigned by our team before the event.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Standard */}
+            <div
+              onClick={() => handleSelectTier('STANDARD')}
+              className="p-5 rounded-lg border-2 border-gold bg-cream cursor-pointer hover:border-maroon hover:shadow-lg transition-all text-center space-y-2 group"
+            >
+              <div className="w-12 h-12 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xl mx-auto group-hover:scale-110 transition-transform">
+                🪑
+              </div>
+              <h4 className="font-serif-display text-lg font-bold text-maroon">Standard Seats</h4>
+              <p className="text-[11px] text-ink-soft leading-relaxed">Rows A – P · C-Side, M-Side, R-Side sections</p>
+              <div className="pt-2 border-t border-gold/30">
+                <span className="font-num text-2xl font-extrabold text-maroon">₹{standardPrice || 850}</span>
+                <span className="text-xs text-ink-soft ml-1">per ticket</span>
+              </div>
+              <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded">
+                Select &rarr;
+              </span>
+            </div>
+
+            {/* Back Row */}
+            <div
+              onClick={() => !disableBackRow && handleSelectTier('BACK_ROW')}
+              className={`p-5 rounded-lg border-2 text-center space-y-2 transition-all ${
+                disableBackRow
+                  ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-300'
+                  : 'border-teal-400 bg-teal-50 cursor-pointer hover:border-teal-600 hover:shadow-lg group'
+              }`}
+            >
+              <div className="w-12 h-12 rounded-full bg-teal-100 border border-teal-300 flex items-center justify-center text-xl mx-auto group-hover:scale-110 transition-transform">
+                🏛️
+              </div>
+              <h4 className="font-serif-display text-lg font-bold text-teal-800">Back Row Seats</h4>
+              <p className="text-[11px] text-teal-700 leading-relaxed">Rows Q & R · Last 2 rows of the auditorium</p>
+              <div className="pt-2 border-t border-teal-200">
+                <span className="font-num text-2xl font-extrabold text-teal-800">₹{backRowPrice || 500}</span>
+                <span className="text-xs text-teal-600 ml-1">per ticket</span>
+              </div>
+              {disableBackRow ? (
+                <span className="inline-block text-xs font-bold uppercase text-red-800 bg-red-100 px-3 py-1 rounded">
+                  Sold Out
+                </span>
+              ) : (
+                <span className="inline-block text-xs font-bold uppercase tracking-widest text-teal-800 bg-teal-100 px-3 py-1 rounded">
+                  {backRowRemaining} seats left · Select &rarr;
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowTierSelect(false);
+              setSelectedBuyerType(null);
+            }}
+            className="text-xs text-ink-soft hover:text-maroon font-semibold underline w-full text-center"
+          >
+            ← Back to Category Selection
+          </button>
+        </div>
+      )}
+
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto ${showTierSelect ? 'opacity-30 pointer-events-none' : ''}`}>
         {/* Option 1: MSN Student / Parent */}
         <div
           onClick={() => !disableMsn && handleSelectType('MSN')}

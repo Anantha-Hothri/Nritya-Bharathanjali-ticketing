@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SEATING_ZONES, AUDITORIUM_CONFIG, DISPLAY_ROWS, getSectionForSeat, getSeatZoneAndStatus } from '../../../lib/seatingConfig';
+import { SEATING_ZONES, AUDITORIUM_CONFIG, DISPLAY_ROWS, getSectionForSeat, getSeatZoneAndStatus, TICKET_PRICES } from '../../../lib/seatingConfig';
 
 export default function AdminSeatAllocationPage() {
   const router = useRouter();
@@ -232,6 +232,17 @@ export default function AdminSeatAllocationPage() {
       };
     }
 
+    // Back-row seats (Rows Q & R) — teal, selectable
+    const isBackRow = defaultZone === SEATING_ZONES.BACK_ROW.name;
+    if (isBackRow && status !== 'ALLOCATED') {
+      return {
+        color: SEATING_ZONES.BACK_ROW.color, // Teal
+        label: 'Back Row — Available',
+        selectable: true,
+        isVip: false,
+      };
+    }
+
     if (status === 'ALLOCATED') {
       if (selectedBooking && allocatedBooking === selectedBooking.id) {
         return {
@@ -440,6 +451,10 @@ export default function AdminSeatAllocationPage() {
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded bg-[#D4AF37] border border-black/20" />
                   <span className="text-black font-bold">VIP</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded bg-[#0D9488] border border-black/20" />
+                  <span className="text-black font-bold">Back Row (Q&R)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded bg-[#4B5563] border border-black/20" />
@@ -695,6 +710,7 @@ export default function AdminSeatAllocationPage() {
                     <th className="p-2.5">Booking ID</th>
                     <th className="p-2.5">Name</th>
                     <th className="p-2.5">Type</th>
+                    <th className="p-2.5">Tier</th>
                     <th className="p-2.5">Team / Code</th>
                     <th className="p-2.5 text-center">No. of Seats</th>
                     <th className="p-2.5">Allocated Seats</th>
@@ -704,7 +720,7 @@ export default function AdminSeatAllocationPage() {
                 <tbody className="divide-y divide-gold/30">
                   {filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-6 text-center text-ink-soft font-medium">
+                      <td colSpan={9} className="p-6 text-center text-ink-soft font-medium">
                         No bookings found matching selected filter.
                       </td>
                     </tr>
@@ -736,6 +752,17 @@ export default function AdminSeatAllocationPage() {
                             }`}>
                               {b.buyerType === 'MSN' ? 'MSN' : 'External'}
                             </span>
+                          </td>
+                          <td className="p-2.5">
+                            {b.seatTier === 'BACK_ROW' ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-300">
+                                Back Row ₹500
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800">
+                                Std ₹850
+                              </span>
+                            )}
                           </td>
                           <td className="p-2.5 font-mono text-[11px] font-bold text-[#6B1A2B]">
                             {b.teamCode || 'General'}
