@@ -7,6 +7,7 @@ export async function GET() {
   try {
     const TOTAL_EVENT_CAPACITY = 645;
     const BACK_ROW_CAPACITY = 45;
+    const STANDARD_CAPACITY = TOTAL_EVENT_CAPACITY - BACK_ROW_CAPACITY; // 600
 
     const [paidBookings, backRowBookings] = await Promise.all([
       prisma.booking.aggregate({
@@ -21,8 +22,11 @@ export async function GET() {
 
     const totalBooked = paidBookings._sum.ticketQty || 0;
     const backRowBooked = backRowBookings._sum.ticketQty || 0;
+    const standardBooked = totalBooked - backRowBooked;
+
     const remainingTickets = Math.max(0, TOTAL_EVENT_CAPACITY - totalBooked);
     const backRowRemaining = Math.max(0, BACK_ROW_CAPACITY - backRowBooked);
+    const standardRemaining = Math.max(0, STANDARD_CAPACITY - standardBooked);
     const isSoldOut = remainingTickets === 0;
 
     return NextResponse.json({
@@ -34,6 +38,9 @@ export async function GET() {
       ticketPrice: 850.0,
       standardPrice: 850.0,
       backRowPrice: 500.0,
+      standardCapacity: STANDARD_CAPACITY,
+      standardBooked,
+      standardRemaining,
       backRowCapacity: BACK_ROW_CAPACITY,
       backRowBooked,
       backRowRemaining,

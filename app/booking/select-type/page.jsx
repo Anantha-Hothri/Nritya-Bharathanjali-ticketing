@@ -17,6 +17,7 @@ export default function BuyerTypeSelectPage() {
     isSoldOut: false,
     standardPrice: 850,
     backRowPrice: 500,
+    standardRemaining: 600,
     backRowRemaining: 45,
   });
 
@@ -80,9 +81,10 @@ export default function BuyerTypeSelectPage() {
 
   if (!customer) return null;
 
-  const { isSoldOut, remainingTickets, backRowRemaining, standardPrice, backRowPrice } = capacityInfo;
+  const { isSoldOut, remainingTickets, standardRemaining, backRowRemaining, standardPrice, backRowPrice } = capacityInfo;
   const disableMsn = isSoldOut || remainingTickets < 3;
   const disableExt = isSoldOut || remainingTickets < 1;
+  const disableStandard = isSoldOut || standardRemaining <= 0;
   const disableBackRow = isSoldOut || backRowRemaining <= 0;
 
   return (
@@ -194,8 +196,12 @@ export default function BuyerTypeSelectPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Standard */}
             <div
-              onClick={() => handleSelectTier('STANDARD')}
-              className="p-5 rounded-lg border-2 border-gold bg-cream cursor-pointer hover:border-maroon hover:shadow-lg transition-all text-center space-y-2 group"
+              onClick={() => !disableStandard && handleSelectTier('STANDARD')}
+              className={`p-5 rounded-lg border-2 text-center space-y-2 transition-all ${
+                disableStandard
+                  ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-300'
+                  : 'border-gold bg-cream cursor-pointer hover:border-maroon hover:shadow-lg group'
+              }`}
             >
               <div className="w-12 h-12 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-xl mx-auto group-hover:scale-110 transition-transform">
                 🪑
@@ -206,9 +212,15 @@ export default function BuyerTypeSelectPage() {
                 <span className="font-num text-2xl font-extrabold text-maroon">₹{standardPrice || 850}</span>
                 <span className="text-xs text-ink-soft ml-1">per ticket</span>
               </div>
-              <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded">
-                Select &rarr;
-              </span>
+              {disableStandard ? (
+                <span className="inline-block text-xs font-bold uppercase text-red-800 bg-red-100 px-3 py-1 rounded">
+                  Sold Out
+                </span>
+              ) : (
+                <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded">
+                  {standardRemaining} seats left · Select &rarr;
+                </span>
+              )}
             </div>
 
             {/* Back Row */}

@@ -70,6 +70,26 @@ export async function POST(request) {
       );
     }
 
+    // Standard sub-capacity check (max 600 standard seats)
+    const STANDARD_CAPACITY = TOTAL_EVENT_CAPACITY - BACK_ROW_CAPACITY;
+    if (tier === 'STANDARD') {
+      const backRowBooked = backRowBookings._sum.ticketQty || 0;
+      const standardBooked = currentBooked - backRowBooked;
+      const standardRemaining = Math.max(0, STANDARD_CAPACITY - standardBooked);
+      if (qty > standardRemaining) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              standardRemaining > 0
+                ? `Only ${standardRemaining} standard seats remaining. Please reduce quantity or choose Back Row seats.`
+                : `Sorry, all standard seats are sold out. Back Row seats (Rows Q & R) may still be available at ₹500.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Back-row sub-capacity check (max 45 seats across rows Q & R)
     if (tier === 'BACK_ROW') {
       const backRowBooked = backRowBookings._sum.ticketQty || 0;

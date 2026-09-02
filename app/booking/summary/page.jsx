@@ -19,6 +19,8 @@ export default function BookingSummaryPage() {
     ticketPrice: 850,
     standardPrice: 850,
     backRowPrice: 500,
+    standardRemaining: 600,
+    backRowRemaining: 45,
   });
 
   // UPI payment state
@@ -181,7 +183,10 @@ export default function BookingSummaryPage() {
   if (!customer) return null;
 
   const totalAmount = ticketQty * ticketPrice;
-  const remaining = capacityInfo.remainingTickets;
+  const tierRemaining = isBackRow
+    ? (capacityInfo.backRowRemaining ?? capacityInfo.remainingTickets)
+    : (capacityInfo.standardRemaining ?? capacityInfo.remainingTickets);
+  const remaining = tierRemaining;
   const isSoldOut = capacityInfo.isSoldOut || remaining <= 0;
 
   return (
