@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const TOTAL_EVENT_CAPACITY = 600;
+    const TOTAL_EVENT_CAPACITY = 645;
 
     const paidBookings = await prisma.booking.aggregate({
       where: { paymentStatus: 'PAID' },

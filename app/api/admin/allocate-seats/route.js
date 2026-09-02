@@ -59,6 +59,14 @@ export async function POST(request) {
           { status: 400 }
         );
       }
+
+      // Blocked seats do not physically exist in the auditorium and can never be allocated
+      if (seat.status === 'BLOCKED') {
+        return NextResponse.json(
+          { success: false, error: `Seat ${seat.seatId} is blocked and cannot be allocated.` },
+          { status: 400 }
+        );
+      }
     }
 
     // Release any previous seats allocated to this booking

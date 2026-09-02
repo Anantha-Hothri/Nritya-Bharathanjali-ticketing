@@ -37,9 +37,9 @@ export async function POST(request) {
       );
     }
 
-    const TOTAL_EVENT_CAPACITY = 600;
+    const TOTAL_EVENT_CAPACITY = 645;
 
-    // Server-side capacity validation against 600 total limit
+    // Server-side capacity validation against 645 total limit
     const paidBookings = await prisma.booking.aggregate({
       where: { paymentStatus: 'PAID' },
       _sum: { ticketQty: true },

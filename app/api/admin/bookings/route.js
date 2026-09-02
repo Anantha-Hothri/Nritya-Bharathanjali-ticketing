@@ -26,7 +26,7 @@ export async function GET(request) {
       include: { tickets: true },
     });
 
-    const TOTAL_EVENT_CAPACITY = 600;
+    const TOTAL_EVENT_CAPACITY = 645;
 
     // Compute Metrics for Paid Bookings
     let totalCollections = 0;

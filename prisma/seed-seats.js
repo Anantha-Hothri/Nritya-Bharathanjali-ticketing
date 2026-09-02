@@ -33,6 +33,10 @@ function getSectionForSeat(rowLetter, num) {
 }
 
 function getSeatZoneAndStatus(rowLetter, num) {
+  // Seat P29 does not physically exist in the auditorium — permanently blocked
+  if (rowLetter === 'P' && num === 29) {
+    return { zone: 'General Seating', status: 'BLOCKED' };
+  }
   if (rowLetter === 'A' || rowLetter === 'B') {
     return { zone: 'VIP Seats', status: 'LOCKED' };
   }
@@ -72,6 +76,8 @@ async function main() {
           row,
           number: num,
           zone,
+          // P29 is permanently blocked regardless of any prior status; other seats keep their live status
+          ...(seatId === 'P29' ? { status } : {}),
         },
         create: {
           seatId,

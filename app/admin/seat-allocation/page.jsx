@@ -223,6 +223,15 @@ export default function AdminSeatAllocationPage() {
       };
     }
 
+    if (status === 'BLOCKED') {
+      return {
+        color: '#4B5563', // ⬛ Grey — seat does not physically exist in the auditorium
+        label: 'Blocked',
+        selectable: false,
+        isVip: false,
+      };
+    }
+
     if (status === 'ALLOCATED') {
       if (selectedBooking && allocatedBooking === selectedBooking.id) {
         return {
@@ -431,6 +440,10 @@ export default function AdminSeatAllocationPage() {
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded bg-[#D4AF37] border border-black/20" />
                   <span className="text-black font-bold">VIP</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded bg-[#4B5563] border border-black/20" />
+                  <span className="text-black font-bold">Blocked</span>
                 </div>
               </div>
             </div>

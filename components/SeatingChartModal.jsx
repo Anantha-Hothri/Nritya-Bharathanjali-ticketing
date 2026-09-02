@@ -142,6 +142,15 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
       };
     }
 
+    if (currentStatus === 'BLOCKED') {
+      return {
+        bgColor: '#4B5563', // Grey — seat does not physically exist in the auditorium
+        textColor: '#FFFFFF',
+        statusText: 'BLOCKED — SEAT NOT AVAILABLE',
+        selectable: false,
+      };
+    }
+
     if (currentStatus === 'ALLOCATED') {
       if (allocatedBooking === booking.id) {
         return {
@@ -400,6 +409,10 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
             <div className="flex items-center gap-1.5">
               <span className="w-3.5 h-3.5 rounded bg-[#D4AF37] border border-black/20" />
               <span className="text-[11px] text-black font-bold">VIP</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 rounded bg-[#4B5563] border border-black/20" />
+              <span className="text-[11px] text-black font-bold">Blocked</span>
             </div>
           </div>
 
