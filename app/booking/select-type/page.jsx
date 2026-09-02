@@ -207,7 +207,6 @@ export default function BuyerTypeSelectPage() {
                 🪑
               </div>
               <h4 className="font-serif-display text-lg font-bold text-maroon">Standard Seats</h4>
-              <p className="text-[11px] text-ink-soft leading-relaxed">Rows A – P · C-Side, M-Side, R-Side sections</p>
               <div className="pt-2 border-t border-gold/30">
                 <span className="font-num text-2xl font-extrabold text-maroon">₹{standardPrice || 850}</span>
                 <span className="text-xs text-ink-soft ml-1">per ticket</span>
@@ -236,7 +235,6 @@ export default function BuyerTypeSelectPage() {
                 🏛️
               </div>
               <h4 className="font-serif-display text-lg font-bold text-teal-800">Back Row Seats</h4>
-              <p className="text-[11px] text-teal-700 leading-relaxed">Rows Q & R · Last 2 rows of the auditorium</p>
               <div className="pt-2 border-t border-teal-200">
                 <span className="font-num text-2xl font-extrabold text-teal-800">₹{backRowPrice || 500}</span>
                 <span className="text-xs text-teal-600 ml-1">per ticket</span>

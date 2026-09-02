@@ -315,7 +315,7 @@ export default function BookingSummaryPage() {
             <div className="p-3 rounded-lg bg-teal-50 border border-teal-300 text-teal-800 text-xs font-semibold flex items-start gap-2">
               <span className="text-base">🏛️</span>
               <span>
-                <strong>Back Row Seats Selected (₹500/ticket).</strong> Your seats will be in Rows Q or R at the back of the auditorium. Exact seat assignments are made by our team before the event and sent to you.
+                <strong>Back Row Seats Selected (₹500/ticket).</strong> Your seats will be at the back of the auditorium. Exact seat assignments are made by our team before the event and sent to you.
               </span>
             </div>
           )}
