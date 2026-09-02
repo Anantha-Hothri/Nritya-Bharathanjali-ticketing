@@ -10,8 +10,8 @@ export default function AdminDashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
-    totalCapacity: 600,
-    remainingTickets: 600,
+    totalCapacity: 645,
+    remainingTickets: 645,
     occupancyPct: 0,
     totalCollections: 0,
     totalTicketsBooked: 0,

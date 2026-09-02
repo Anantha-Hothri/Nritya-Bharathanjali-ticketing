@@ -74,16 +74,16 @@ async function testFullFlow() {
     _sum: { ticketQty: true },
   });
 
-  console.log(`✓ Total Paid Tickets: ${totalBooked} / 600 Capacity (${600 - totalBooked} remaining)`);
+  const TOTAL_CAP = 645;
+  console.log(`✓ Total Paid Tickets: ${totalBooked} / ${TOTAL_CAP} Capacity (${TOTAL_CAP - totalBooked} remaining)`);
   console.log(`✓ MSN Tickets Sold: ${msnTotal._sum.ticketQty || 0} | External Tickets Sold: ${extTotal._sum.ticketQty || 0}`);
 
   // 5. Verify Cap Enforcement Logic
-  const TOTAL_CAP = 600;
   const remaining = Math.max(0, TOTAL_CAP - totalBooked);
   if (remaining < 0) {
-    throw new Error('Total booked tickets exceed 600 cap!');
+    throw new Error(`Total booked tickets exceed ${TOTAL_CAP} cap!`);
   }
-  console.log(`✓ Hard Cap Assertion Passed: Cannot book beyond 600 capacity`);
+  console.log(`✓ Hard Cap Assertion Passed: Cannot book beyond ${TOTAL_CAP} capacity`);
 
   // 6. Test Excel Generation
   const workbook = new ExcelJS.Workbook();

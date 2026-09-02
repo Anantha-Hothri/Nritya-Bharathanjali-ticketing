@@ -8,8 +8,8 @@ export default function AdminAnalyticsPage() {
 
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
-    totalCapacity: 600,
-    remainingTickets: 600,
+    totalCapacity: 645,
+    remainingTickets: 645,
     occupancyPct: 0,
     totalCollections: 0,
     totalTicketsBooked: 0,
@@ -52,7 +52,7 @@ export default function AdminAnalyticsPage() {
     }
   };
 
-  const totalCapacity = metrics.totalCapacity || 600;
+  const totalCapacity = metrics.totalCapacity || 645;
   const bookedTickets = metrics.totalTicketsBooked || 0;
   const remainingTickets = metrics.remainingTickets !== undefined ? metrics.remainingTickets : Math.max(0, totalCapacity - bookedTickets);
   const occupancyPct = Math.round((bookedTickets / totalCapacity) * 100);
@@ -95,7 +95,7 @@ export default function AdminAnalyticsPage() {
             <div className="p-5 rounded-xl bg-white border border-gold text-center space-y-1 shadow-sm">
               <span className="text-[10px] font-bold uppercase tracking-wider text-bronze block">TICKETS BOOKED</span>
               <div className="font-num text-2xl sm:text-3xl font-extrabold text-amber-900">
-                {bookedTickets} / 600
+                {bookedTickets} / {totalCapacity}
               </div>
               <span className="text-[10px] text-ink-soft block">Confirmed Issued</span>
             </div>
@@ -106,7 +106,7 @@ export default function AdminAnalyticsPage() {
               <div className="font-num text-2xl sm:text-3xl font-extrabold text-emerald-900">
                 {remainingTickets}
               </div>
-              <span className="text-[10px] text-ink-soft block">Available Out of 600</span>
+              <span className="text-[10px] text-ink-soft block">Available Out of {totalCapacity}</span>
             </div>
 
             {/* 4. Allocated Seats */}
@@ -132,7 +132,7 @@ export default function AdminAnalyticsPage() {
           <div className="card-gold-accent p-6 bg-white shadow-md space-y-4">
             <div className="flex justify-between items-center text-sm font-bold">
               <span className="text-[#6B1A2B] text-base">🎟️ Event Capacity Occupancy Rate ({occupancyPct}%)</span>
-              <span className="text-ink-soft font-mono text-xs">{bookedTickets} / 600 Tickets Sold</span>
+              <span className="text-ink-soft font-mono text-xs">{bookedTickets} / {totalCapacity} Tickets Sold</span>
             </div>
 
             <div className="w-full h-7 bg-sandal/60 rounded-full overflow-hidden border-2 border-gold flex shadow-inner">

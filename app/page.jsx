@@ -5,8 +5,8 @@ import Link from 'next/link';
 
 export default function EventLandingPage() {
   const [capacityInfo, setCapacityInfo] = useState({
-    totalCapacity: 600,
-    remainingTickets: 600,
+    totalCapacity: 645,
+    remainingTickets: 645,
     isSoldOut: false,
   });
 

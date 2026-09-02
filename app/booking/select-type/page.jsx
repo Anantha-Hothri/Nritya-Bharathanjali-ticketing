@@ -10,8 +10,8 @@ export default function BuyerTypeSelectPage() {
   const [showStudentInput, setShowStudentInput] = useState(false);
   const [error, setError] = useState('');
   const [capacityInfo, setCapacityInfo] = useState({
-    totalCapacity: 600,
-    remainingTickets: 600,
+    totalCapacity: 645,
+    remainingTickets: 645,
     isSoldOut: false,
   });
 
