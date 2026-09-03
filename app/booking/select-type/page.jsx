@@ -193,7 +193,7 @@ export default function BuyerTypeSelectPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${selectedBuyerType === 'MSN' ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-1 sm:grid-cols-2'}`}>
             {/* Standard */}
             <div
               onClick={() => !disableStandard && handleSelectTier('STANDARD')}
@@ -222,33 +222,35 @@ export default function BuyerTypeSelectPage() {
               )}
             </div>
 
-            {/* Back Row */}
-            <div
-              onClick={() => !disableBackRow && handleSelectTier('BACK_ROW')}
-              className={`p-5 rounded-lg border-2 text-center space-y-2 transition-all ${
-                disableBackRow
-                  ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-300'
-                  : 'border-teal-400 bg-teal-50 cursor-pointer hover:border-teal-600 hover:shadow-lg group'
-              }`}
-            >
-              <div className="w-12 h-12 rounded-full bg-teal-100 border border-teal-300 flex items-center justify-center text-xl mx-auto group-hover:scale-110 transition-transform">
-                🏛️
+            {/* Back Row — only for External attendees */}
+            {selectedBuyerType !== 'MSN' && (
+              <div
+                onClick={() => !disableBackRow && handleSelectTier('BACK_ROW')}
+                className={`p-5 rounded-lg border-2 text-center space-y-2 transition-all ${
+                  disableBackRow
+                    ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-300'
+                    : 'border-teal-400 bg-teal-50 cursor-pointer hover:border-teal-600 hover:shadow-lg group'
+                }`}
+              >
+                <div className="w-12 h-12 rounded-full bg-teal-100 border border-teal-300 flex items-center justify-center text-xl mx-auto group-hover:scale-110 transition-transform">
+                  🏛️
+                </div>
+                <h4 className="font-serif-display text-lg font-bold text-teal-800">Back Row Seats</h4>
+                <div className="pt-2 border-t border-teal-200">
+                  <span className="font-num text-2xl font-extrabold text-teal-800">₹{backRowPrice || 500}</span>
+                  <span className="text-xs text-teal-600 ml-1">per ticket</span>
+                </div>
+                {disableBackRow ? (
+                  <span className="inline-block text-xs font-bold uppercase text-red-800 bg-red-100 px-3 py-1 rounded">
+                    Sold Out
+                  </span>
+                ) : (
+                  <span className="inline-block text-xs font-bold uppercase tracking-widest text-teal-800 bg-teal-100 px-3 py-1 rounded">
+                    {backRowRemaining} seats left · Select &rarr;
+                  </span>
+                )}
               </div>
-              <h4 className="font-serif-display text-lg font-bold text-teal-800">Back Row Seats</h4>
-              <div className="pt-2 border-t border-teal-200">
-                <span className="font-num text-2xl font-extrabold text-teal-800">₹{backRowPrice || 500}</span>
-                <span className="text-xs text-teal-600 ml-1">per ticket</span>
-              </div>
-              {disableBackRow ? (
-                <span className="inline-block text-xs font-bold uppercase text-red-800 bg-red-100 px-3 py-1 rounded">
-                  Sold Out
-                </span>
-              ) : (
-                <span className="inline-block text-xs font-bold uppercase tracking-widest text-teal-800 bg-teal-100 px-3 py-1 rounded">
-                  {backRowRemaining} seats left · Select &rarr;
-                </span>
-              )}
-            </div>
+            )}
           </div>
 
           <button
