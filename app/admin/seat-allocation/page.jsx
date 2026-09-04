@@ -344,9 +344,9 @@ export default function AdminSeatAllocationPage() {
               )}
 
               {/* Seating Grid Canvas */}
-              <div className="overflow-auto py-6 flex-grow min-h-[420px] max-h-[580px] scrollbar-thin flex justify-center">
+              <div className="overflow-auto py-6 px-6 sm:px-10 flex-grow min-h-[420px] max-h-[580px] scrollbar-thin">
                 <div
-                  className="transition-transform duration-150 origin-top space-y-2 w-[1028px] sm:w-[1212px] shrink-0 flex flex-col items-center px-6 sm:px-10"
+                  className="transition-transform duration-150 origin-top space-y-2 w-[1028px] sm:w-[1212px] mx-auto flex flex-col items-center"
                   style={{ transform: `scale(${zoomLevel})` }}
                 >
                   {/* Section Headers Aligned Directly Centered Above Columns */}
