@@ -134,12 +134,11 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
     }
 
     if (currentStatus === 'LOCKED' && isVip) {
-      const bookingIsBackRow = booking.seatTier === 'BACK_ROW';
       return {
         bgColor: SEATING_ZONES.VIP.color, // Gold
         textColor: '#111827',
-        statusText: bookingIsBackRow ? 'VIP SEAT — NOT FOR THIS BOOKING' : 'VIP SEAT — AVAILABLE',
-        selectable: !bookingIsBackRow,
+        statusText: 'VIP SEAT — AVAILABLE',
+        selectable: true,
       };
     }
 
