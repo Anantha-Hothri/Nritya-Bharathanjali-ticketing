@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { SEATING_ZONES, AUDITORIUM_CONFIG, DISPLAY_ROWS, getSectionForSeat, getSeatZoneAndStatus, TICKET_PRICES } from '../../../lib/seatingConfig';
+import { SEATING_ZONES, AUDITORIUM_CONFIG, DISPLAY_ROWS, getSectionForSeat, getSeatZoneAndStatus, TICKET_PRICES, MIDDLE_ROW_LETTERS, BACK_ROW_LETTERS } from '../../../lib/seatingConfig';
 
 export default function AdminSeatAllocationPage() {
   const router = useRouter();
@@ -187,13 +187,21 @@ export default function AdminSeatAllocationPage() {
     return true;
   });
 
-  // Determine seat visual colors (🟢 Green, 🟣 Purple, 🔴 Red, ⭐ Gold)
+  // Determine seat visual state per booking tier
+  // VIP (rows A & B): always selectable regardless of tier
+  // STANDARD (rows C–M): selectable for STANDARD bookings (and VIP)
+  // MIDDLE_ROW (rows N–O): selectable for MIDDLE_ROW bookings (and VIP)
+  // BACK_ROW (rows P–R): selectable for BACK_ROW bookings (and VIP)
   const getSeatState = (seatId, defaultZone, defaultStatus) => {
     const isVipZone = defaultZone === SEATING_ZONES.VIP.name;
+    const isMiddleRowZone = defaultZone === SEATING_ZONES.MIDDLE_ROW.name;
+    const isBackRowZone = defaultZone === SEATING_ZONES.BACK_ROW.name;
+    const bookingTier = selectedBooking?.seatTier || null;
+
     const isSelectedCurrentSession = selectedSeatIds.includes(seatId);
     if (isSelectedCurrentSession) {
       return {
-        color: isVipZone ? '#DC2626' : '#6A0DAD', // 🔴 Red for VIP selections, 🟣 Purple otherwise
+        color: isVipZone ? '#D4AF37' : '#6A0DAD',
         label: isVipZone ? 'VIP Seat Selected' : 'Selected',
         selectable: true,
         isVip: isVipZone,
@@ -204,69 +212,62 @@ export default function AdminSeatAllocationPage() {
     const status = dbSeat ? dbSeat.status : defaultStatus;
     const allocatedBooking = dbSeat ? dbSeat.allocatedToBookingId : null;
 
-    // VIP seats default to LOCKED status in the DB, but are still selectable for allocation
+    // Non-VIP locked seats (admin-locked, not allocatable)
     if (status === 'LOCKED' && !isVipZone) {
-      return {
-        color: '#1565C0', // Locked Blue (non-VIP seats reserved by admin)
-        label: 'Locked',
-        selectable: false,
-        isVip: false,
-      };
+      return { color: '#1565C0', label: 'Locked', selectable: false, isVip: false };
     }
 
+    // VIP seats (rows A & B) — always selectable for any booking tier
     if (status === 'LOCKED' && isVipZone) {
-      const bookingIsBackRow = selectedBooking?.seatTier === 'BACK_ROW';
       return {
-        color: '#D4AF37', // ⭐ Gold for VIP — available
-        label: bookingIsBackRow ? 'VIP — Back Row bookings not permitted here' : 'VIP — Available',
-        selectable: !bookingIsBackRow,
+        color: '#D4AF37',
+        label: 'VIP — Available (any tier)',
+        selectable: true,
         isVip: true,
       };
     }
 
+    // Blocked seats — physically don't exist
     if (status === 'BLOCKED') {
-      return {
-        color: '#4B5563', // ⬛ Grey — seat does not physically exist in the auditorium
-        label: 'Blocked',
-        selectable: false,
-        isVip: false,
-      };
+      return { color: '#4B5563', label: 'Blocked', selectable: false, isVip: false };
     }
 
-    // Back-row seats (Rows Q & R) — only selectable for BACK_ROW bookings
-    const isBackRow = defaultZone === SEATING_ZONES.BACK_ROW.name;
-    const bookingIsBackRow = selectedBooking?.seatTier === 'BACK_ROW';
-    if (isBackRow && status !== 'ALLOCATED') {
-      return {
-        color: SEATING_ZONES.BACK_ROW.color, // Teal
-        label: bookingIsBackRow ? 'Back Row — Available' : 'Back Row — Standard bookings not permitted here',
-        selectable: bookingIsBackRow,
-        isVip: false,
-      };
-    }
-
+    // Already allocated to another booking
     if (status === 'ALLOCATED') {
       if (selectedBooking && allocatedBooking === selectedBooking.id) {
-        return {
-          color: '#6A0DAD', // 🟣 Purple
-          label: 'Selected',
-          selectable: true,
-          isVip: false,
-        };
+        return { color: '#6A0DAD', label: 'Selected', selectable: true, isVip: false };
       }
+      return { color: '#DC2626', label: 'Allocated', selectable: false, isVip: false };
+    }
+
+    // Middle-row seats (rows N & O) — only for MIDDLE_ROW bookings
+    if (isMiddleRowZone) {
+      const allowed = bookingTier === 'MIDDLE_ROW';
       return {
-        color: '#DC2626', // 🔴 Red for Allocated
-        label: 'Allocated',
-        selectable: false,
+        color: SEATING_ZONES.MIDDLE_ROW.color, // Violet
+        label: allowed ? 'Middle Row — Available' : 'Middle Row — not permitted for this booking tier',
+        selectable: allowed,
         isVip: false,
       };
     }
 
-    // Standard available seats — only selectable for STANDARD bookings
+    // Back-row seats (rows P, Q, R) — only for BACK_ROW bookings
+    if (isBackRowZone) {
+      const allowed = bookingTier === 'BACK_ROW';
+      return {
+        color: SEATING_ZONES.BACK_ROW.color, // Teal
+        label: allowed ? 'Back Row — Available' : 'Back Row — not permitted for this booking tier',
+        selectable: allowed,
+        isVip: false,
+      };
+    }
+
+    // Standard seats (rows C–M) — only for STANDARD bookings
+    const allowed = bookingTier === 'STANDARD';
     return {
-      color: '#16A34A', // 🟢 Green for Available
-      label: bookingIsBackRow ? 'Standard seat — Back Row bookings not permitted here' : 'Available',
-      selectable: !bookingIsBackRow,
+      color: '#16A34A',
+      label: allowed ? 'Available' : 'Standard seat — not permitted for this booking tier',
+      selectable: allowed,
       isVip: false,
     };
   };
@@ -441,7 +442,19 @@ export default function AdminSeatAllocationPage() {
                 <span className="font-bold text-black uppercase text-[11px]">Seat States Legend:</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded bg-[#16A34A] border border-black/20" />
-                  <span className="text-black font-bold">Available</span>
+                  <span className="text-black font-bold">Standard (₹850)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded bg-[#7C3AED] border border-black/20" />
+                  <span className="text-black font-bold">Middle Row (₹750)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded bg-[#0D9488] border border-black/20" />
+                  <span className="text-black font-bold">Back Row (₹500)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded bg-[#D4AF37] border border-black/20" />
+                  <span className="text-black font-bold">VIP (any tier)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded bg-[#6A0DAD] border border-black/20" />
@@ -450,14 +463,6 @@ export default function AdminSeatAllocationPage() {
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded bg-[#DC2626] border border-black/20" />
                   <span className="text-black font-bold">Allocated</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded bg-[#D4AF37] border border-black/20" />
-                  <span className="text-black font-bold">VIP</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded bg-[#0D9488] border border-black/20" />
-                  <span className="text-black font-bold">Back Row (Q&R)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 h-4 rounded bg-[#4B5563] border border-black/20" />
@@ -760,6 +765,10 @@ export default function AdminSeatAllocationPage() {
                             {b.seatTier === 'BACK_ROW' ? (
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-300">
                                 Back Row ₹500
+                              </span>
+                            ) : b.seatTier === 'MIDDLE_ROW' ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-300">
+                                Mid Row ₹750
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800">

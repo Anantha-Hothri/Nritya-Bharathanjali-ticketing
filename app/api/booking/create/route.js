@@ -21,8 +21,8 @@ export async function POST(request) {
     } = bookingData;
 
     const qty = Number(ticketQty);
-    const category = buyerType === 'MSN' ? 'MSN' : 'EXTERNAL';
-    const tier = seatTier === 'BACK_ROW' ? 'BACK_ROW' : 'STANDARD';
+    const category = 'EXTERNAL';
+    const tier = seatTier === 'BACK_ROW' ? 'BACK_ROW' : seatTier === 'MIDDLE_ROW' ? 'MIDDLE_ROW' : 'STANDARD';
 
     if (!customerName || !phone || !email || isNaN(qty) || qty < 1) {
       return NextResponse.json(
@@ -31,21 +31,19 @@ export async function POST(request) {
       );
     }
 
-    // MSN Minimum 3 Tickets Rule Enforcement
-    if (category === 'MSN' && qty < 3) {
-      return NextResponse.json(
-        { success: false, error: 'MSN Student/Parent bookings require a minimum of 3 tickets.' },
-        { status: 400 }
-      );
-    }
+    const STANDARD_CAPACITY = 502;
+    const MIDDLE_ROW_CAPACITY = 70;
+    const BACK_ROW_CAPACITY = 73;
+    const TOTAL_EVENT_CAPACITY = STANDARD_CAPACITY + MIDDLE_ROW_CAPACITY + BACK_ROW_CAPACITY; // 645
 
-    const TOTAL_EVENT_CAPACITY = 645;
-    const BACK_ROW_CAPACITY = 45;
-
-    // Server-side capacity validation against 645 total limit
-    const [paidBookings, backRowBookings] = await Promise.all([
+    // Server-side capacity validation
+    const [paidBookings, middleRowBookings, backRowBookings] = await Promise.all([
       prisma.booking.aggregate({
         where: { paymentStatus: 'PAID' },
+        _sum: { ticketQty: true },
+      }),
+      prisma.booking.aggregate({
+        where: { paymentStatus: 'PAID', seatTier: 'MIDDLE_ROW' },
         _sum: { ticketQty: true },
       }),
       prisma.booking.aggregate({
@@ -70,11 +68,11 @@ export async function POST(request) {
       );
     }
 
-    // Standard sub-capacity check (max 600 standard seats)
-    const STANDARD_CAPACITY = TOTAL_EVENT_CAPACITY - BACK_ROW_CAPACITY;
+    // Standard sub-capacity check (max 502 standard seats)
     if (tier === 'STANDARD') {
-      const backRowBooked = backRowBookings._sum.ticketQty || 0;
-      const standardBooked = currentBooked - backRowBooked;
+      const middleBooked = middleRowBookings._sum.ticketQty || 0;
+      const backBooked = backRowBookings._sum.ticketQty || 0;
+      const standardBooked = currentBooked - middleBooked - backBooked;
       const standardRemaining = Math.max(0, STANDARD_CAPACITY - standardBooked);
       if (qty > standardRemaining) {
         return NextResponse.json(
@@ -82,33 +80,51 @@ export async function POST(request) {
             success: false,
             error:
               standardRemaining > 0
-                ? `Only ${standardRemaining} standard seats remaining. Please reduce quantity or choose Back Row seats.`
-                : `Sorry, all standard seats are sold out. Back Row seats (Rows Q & R) may still be available at ₹500.`,
+                ? `Only ${standardRemaining} standard seats remaining. Please reduce quantity or choose a different section.`
+                : `Sorry, all standard seats are sold out. Middle Row or Back Row seats may still be available.`,
           },
           { status: 400 }
         );
       }
     }
 
-    // Back-row sub-capacity check (max 45 seats across rows Q & R)
+    // Middle-row sub-capacity check (max 70 seats, rows N & O)
+    if (tier === 'MIDDLE_ROW') {
+      const middleBooked = middleRowBookings._sum.ticketQty || 0;
+      const middleRemaining = Math.max(0, MIDDLE_ROW_CAPACITY - middleBooked);
+      if (qty > middleRemaining) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              middleRemaining > 0
+                ? `Only ${middleRemaining} middle row seats remaining. Please reduce quantity or choose a different section.`
+                : `Sorry, all middle row seats are sold out. Standard or Back Row seats may still be available.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Back-row sub-capacity check (max 73 seats, rows P, Q & R)
     if (tier === 'BACK_ROW') {
-      const backRowBooked = backRowBookings._sum.ticketQty || 0;
-      const backRowRemaining = Math.max(0, BACK_ROW_CAPACITY - backRowBooked);
+      const backBooked = backRowBookings._sum.ticketQty || 0;
+      const backRowRemaining = Math.max(0, BACK_ROW_CAPACITY - backBooked);
       if (qty > backRowRemaining) {
         return NextResponse.json(
           {
             success: false,
             error:
               backRowRemaining > 0
-                ? `Only ${backRowRemaining} back-row seats remaining. Please choose Standard seats or reduce quantity.`
-                : `Sorry, all back-row seats (Rows Q & R) are sold out. Please choose Standard seats instead.`,
+                ? `Only ${backRowRemaining} back row seats remaining. Please choose a different section or reduce quantity.`
+                : `Sorry, all back row seats are sold out. Please choose Standard or Middle Row seats instead.`,
           },
           { status: 400 }
         );
       }
     }
 
-    const ticketPrice = tier === 'BACK_ROW' ? 500.0 : 850.0;
+    const ticketPrice = tier === 'BACK_ROW' ? 500.0 : tier === 'MIDDLE_ROW' ? 750.0 : 850.0;
     const totalAmount = qty * ticketPrice;
 
     // Generate Unique Public Booking ID e.g. SKD-2026-9B3F

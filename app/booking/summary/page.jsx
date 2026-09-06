@@ -16,11 +16,12 @@ export default function BookingSummaryPage() {
     totalCapacity: 645,
     remainingTickets: 645,
     isSoldOut: false,
-    ticketPrice: 850,
     standardPrice: 850,
+    middleRowPrice: 750,
     backRowPrice: 500,
-    standardRemaining: 600,
-    backRowRemaining: 45,
+    standardRemaining: 502,
+    middleRowRemaining: 70,
+    backRowRemaining: 73,
   });
 
   // UPI payment state
@@ -31,11 +32,14 @@ export default function BookingSummaryPage() {
   const [utrInput, setUtrInput] = useState('');
   const [upiCopied, setUpiCopied] = useState(false);
 
-  const minTicketQty = buyerType === 'MSN' ? 3 : 1;
+  const minTicketQty = 1;
   const isBackRow = seatTier === 'BACK_ROW';
+  const isMiddleRow = seatTier === 'MIDDLE_ROW';
   const ticketPrice = isBackRow
     ? (capacityInfo.backRowPrice || 500)
-    : (capacityInfo.standardPrice || capacityInfo.ticketPrice || 850);
+    : isMiddleRow
+    ? (capacityInfo.middleRowPrice || 750)
+    : (capacityInfo.standardPrice || 850);
 
   useEffect(() => {
     const savedCustomer = sessionStorage.getItem('skanda_customer_login');
@@ -51,7 +55,7 @@ export default function BookingSummaryPage() {
 
     const savedType = sessionStorage.getItem('skanda_buyer_type') || 'EXTERNAL';
     setBuyerType(savedType);
-    setTicketQty(savedType === 'MSN' ? 3 : 1);
+    setTicketQty(1);
 
     const savedTier = sessionStorage.getItem('skanda_seat_tier') || 'STANDARD';
     setSeatTier(savedTier);
@@ -73,11 +77,6 @@ export default function BookingSummaryPage() {
   const handleProceedToPay = async () => {
     if (!customer) return;
     setError('');
-
-    if (buyerType === 'MSN' && ticketQty < 3) {
-      setError('MSN Student/Parent bookings require a minimum of 3 tickets.');
-      return;
-    }
 
     setLoading(true);
 
@@ -185,6 +184,8 @@ export default function BookingSummaryPage() {
   const totalAmount = ticketQty * ticketPrice;
   const tierRemaining = isBackRow
     ? (capacityInfo.backRowRemaining ?? capacityInfo.remainingTickets)
+    : isMiddleRow
+    ? (capacityInfo.middleRowRemaining ?? capacityInfo.remainingTickets)
     : (capacityInfo.standardRemaining ?? capacityInfo.remainingTickets);
   const remaining = tierRemaining;
   const isSoldOut = capacityInfo.isSoldOut || remaining <= 0;
@@ -197,7 +198,7 @@ export default function BookingSummaryPage() {
           ✓ 1. Contact Details
         </div>
         <div className="opacity-60 cursor-pointer" onClick={() => router.push('/booking/select-type')}>
-          ✓ 2. Category ({buyerType === 'MSN' ? 'MSN' : 'External'} · {isBackRow ? 'Back Row' : 'Standard'})
+          ✓ 2. {isBackRow ? 'Back Row Seats' : isMiddleRow ? 'Middle Row Seats' : 'Standard Seats'}
         </div>
         <div className="flex items-center gap-2 text-maroon font-bold">
           <span className="step-badge">3</span>
@@ -240,16 +241,14 @@ export default function BookingSummaryPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="text-xs text-ink-soft block uppercase">ATTENDEE CATEGORY</span>
-                <span className="font-bold text-maroon flex items-center gap-1">
-                  {buyerType === 'MSN' ? '🎭 MSN' : '🎟️ External Attendee'}
+                <span className="text-xs text-ink-soft block uppercase">SEAT SECTION</span>
+                <span className={`font-bold flex items-center gap-1 ${isBackRow ? 'text-teal-700' : isMiddleRow ? 'text-violet-700' : 'text-maroon'}`}>
+                  {isBackRow ? '🏛️ Back Row Seats' : isMiddleRow ? '🎭 Middle Row Seats' : '🪑 Standard Seats'}
                 </span>
               </div>
               <div>
-                <span className="text-xs text-ink-soft block uppercase">SEAT SECTION</span>
-                <span className={`font-bold flex items-center gap-1 ${isBackRow ? 'text-teal-700' : 'text-maroon'}`}>
-                  {isBackRow ? '🏛️ Back Row (Q & R)' : '🪑 Standard Seats'}
-                </span>
+                <span className="text-xs text-ink-soft block uppercase">TICKET PRICE</span>
+                <span className="font-bold text-maroon font-num">₹{ticketPrice} per ticket</span>
               </div>
               <div>
                 <span className="text-xs text-ink-soft block uppercase">PHONE / WHATSAPP</span>
@@ -287,11 +286,6 @@ export default function BookingSummaryPage() {
                 +
               </button>
             </div>
-            {buyerType === 'MSN' && (
-              <div className="p-2.5 rounded bg-sandal/80 border border-gold text-xs text-maroon font-bold text-center">
-                🔒 MSN Student/Parent bookings require a minimum of 3 tickets.
-              </div>
-            )}
           </div>
 
           {/* Amount Breakdown */}
@@ -310,12 +304,20 @@ export default function BookingSummaryPage() {
             </div>
           </div>
 
-          {/* Back Row Info Banner */}
+          {/* Tier Info Banner */}
           {isBackRow && (
             <div className="p-3 rounded-lg bg-teal-50 border border-teal-300 text-teal-800 text-xs font-semibold flex items-start gap-2">
               <span className="text-base">🏛️</span>
               <span>
-                <strong>Back Row Seats Selected (₹500/ticket).</strong> Your seats will be at the back of the auditorium. Exact seat assignments are made by our team before the event and sent to you.
+                <strong>Back Row Seats Selected (₹500/ticket).</strong> Your seats will be at the back of the auditorium. Exact seat assignments are made by our team before the event.
+              </span>
+            </div>
+          )}
+          {isMiddleRow && (
+            <div className="p-3 rounded-lg bg-violet-50 border border-violet-300 text-violet-800 text-xs font-semibold flex items-start gap-2">
+              <span className="text-base">🎭</span>
+              <span>
+                <strong>Middle Row Seats Selected (₹750/ticket).</strong> Your seats will be in the mid-section of the auditorium. Exact seat assignments are made by our team before the event.
               </span>
             </div>
           )}
