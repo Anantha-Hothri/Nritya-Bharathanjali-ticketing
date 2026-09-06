@@ -180,6 +180,16 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
       };
     }
 
+    // VIP seats with AVAILABLE status (released from a prior allocation) — always selectable
+    if (isVip) {
+      return {
+        bgColor: SEATING_ZONES.VIP.color,
+        textColor: '#111827',
+        statusText: 'VIP SEAT — AVAILABLE',
+        selectable: true,
+      };
+    }
+
     // Standard available seats — only selectable for STANDARD bookings
     const zoneObj = Object.values(SEATING_ZONES).find((z) => z.name === defaultZone) || SEATING_ZONES.GENERAL;
     return {

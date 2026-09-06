@@ -262,6 +262,16 @@ export default function AdminSeatAllocationPage() {
       };
     }
 
+    // VIP seats with AVAILABLE status (released from a prior allocation) — always selectable
+    if (isVipZone) {
+      return {
+        color: SEATING_ZONES.VIP.color,
+        label: 'VIP — Available (any tier)',
+        selectable: true,
+        isVip: true,
+      };
+    }
+
     // Standard seats (rows C–M) — only for STANDARD bookings
     const allowed = bookingTier === 'STANDARD';
     return {

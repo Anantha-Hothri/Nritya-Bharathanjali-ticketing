@@ -70,15 +70,27 @@ export async function POST(request) {
     }
 
     // Release any previous seats allocated to this booking
-    await prisma.seat.updateMany({
+    // VIP seats (rows A & B) revert to LOCKED; all others revert to AVAILABLE
+    const previousSeats = await prisma.seat.findMany({
       where: { allocatedToBookingId: booking.id },
-      data: {
-        status: 'AVAILABLE',
-        allocatedToBookingId: null,
-        allocatedBy: null,
-        allocatedAt: null,
-      },
+      select: { seatId: true, zone: true },
     });
+
+    const vipSeatIds = previousSeats.filter((s) => s.zone === 'VIP Seats').map((s) => s.seatId);
+    const nonVipSeatIds = previousSeats.filter((s) => s.zone !== 'VIP Seats').map((s) => s.seatId);
+
+    if (vipSeatIds.length > 0) {
+      await prisma.seat.updateMany({
+        where: { seatId: { in: vipSeatIds } },
+        data: { status: 'LOCKED', allocatedToBookingId: null, allocatedBy: null, allocatedAt: null },
+      });
+    }
+    if (nonVipSeatIds.length > 0) {
+      await prisma.seat.updateMany({
+        where: { seatId: { in: nonVipSeatIds } },
+        data: { status: 'AVAILABLE', allocatedToBookingId: null, allocatedBy: null, allocatedAt: null },
+      });
+    }
 
     // Mark selected seats as ALLOCATED
     await prisma.seat.updateMany({
