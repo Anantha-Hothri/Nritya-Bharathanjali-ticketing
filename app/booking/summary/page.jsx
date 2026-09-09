@@ -58,6 +58,11 @@ export default function BookingSummaryPage() {
     setTicketQty(1);
 
     const savedTier = sessionStorage.getItem('skanda_seat_tier') || 'STANDARD';
+    // ₹850 Standard tier is closed — redirect back to tier selection
+    if (savedTier === 'STANDARD') {
+      router.push('/booking/select-type');
+      return;
+    }
     setSeatTier(savedTier);
 
     fetchCapacityInfo();

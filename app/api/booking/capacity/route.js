@@ -10,24 +10,57 @@ export async function GET() {
     const BACK_ROW_CAPACITY = 73;   // Rows P, Q & R (P29 blocked)
     const TOTAL_EVENT_CAPACITY = STANDARD_CAPACITY + MIDDLE_ROW_CAPACITY + BACK_ROW_CAPACITY; // 645
 
-    const [paidBookings, middleRowBookings, backRowBookings] = await Promise.all([
+    // Fetch all PAID bookings — we parse allocatedSeats to get exact row occupancy,
+    // because admin can assign any seat to any booking tier (not just matching tier rows).
+    const [paidBookings, allocatedPaidBookings, notAllocatedMiddleRow, notAllocatedBackRow] = await Promise.all([
       prisma.booking.aggregate({
         where: { paymentStatus: 'PAID' },
         _sum: { ticketQty: true },
       }),
+      // All PAID+ALLOCATED bookings — parse allocatedSeats to count N/O and P/Q/R seats exactly
+      prisma.booking.findMany({
+        where: { paymentStatus: 'PAID', allocationStatus: 'ALLOCATED' },
+        select: { allocatedSeats: true },
+      }),
+      // PAID MIDDLE_ROW bookings not yet seat-allocated — count by ticketQty (no seats assigned yet)
       prisma.booking.aggregate({
-        where: { paymentStatus: 'PAID', seatTier: 'MIDDLE_ROW' },
+        where: { paymentStatus: 'PAID', seatTier: 'MIDDLE_ROW', allocationStatus: 'NOT_ALLOCATED' },
         _sum: { ticketQty: true },
       }),
+      // PAID BACK_ROW bookings not yet seat-allocated
       prisma.booking.aggregate({
-        where: { paymentStatus: 'PAID', seatTier: 'BACK_ROW' },
+        where: { paymentStatus: 'PAID', seatTier: 'BACK_ROW', allocationStatus: 'NOT_ALLOCATED' },
         _sum: { ticketQty: true },
       }),
     ]);
 
+    // Parse allocatedSeats strings (e.g. "N5, N6, O12") to count actual physical N/O and P/Q/R seats
+    let middleRowFromSeats = 0;
+    let backRowFromSeats = 0;
+    let standardFromSeats = 0;
+
+    for (const booking of allocatedPaidBookings) {
+      const seats = (booking.allocatedSeats || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      for (const seatId of seats) {
+        const row = seatId[0]?.toUpperCase();
+        if (row === 'N' || row === 'O') middleRowFromSeats++;
+        else if (row === 'P' || row === 'Q' || row === 'R') backRowFromSeats++;
+        // A and B rows are VIP — excluded from zone counts
+        else if (row && row >= 'C' && row <= 'M') standardFromSeats++;
+      }
+    }
+
     const totalBooked = paidBookings._sum.ticketQty || 0;
-    const middleRowBooked = middleRowBookings._sum.ticketQty || 0;
-    const backRowBooked = backRowBookings._sum.ticketQty || 0;
+    const notAllocatedMiddleQty = notAllocatedMiddleRow._sum.ticketQty || 0;
+    const notAllocatedBackQty = notAllocatedBackRow._sum.ticketQty || 0;
+
+    // Total occupied = physically allocated seats in that zone + paid tickets not yet seat-assigned
+    const middleRowBooked = middleRowFromSeats + notAllocatedMiddleQty;
+    const backRowBooked = backRowFromSeats + notAllocatedBackQty;
     const standardBooked = totalBooked - middleRowBooked - backRowBooked;
 
     const remainingTickets = Math.max(0, TOTAL_EVENT_CAPACITY - totalBooked);
@@ -42,6 +75,7 @@ export async function GET() {
       totalBooked,
       remainingTickets,
       isSoldOut,
+      standardClosed: true, // ₹850 tier is no longer available for public booking
       standardPrice: 850.0,
       middleRowPrice: 750.0,
       backRowPrice: 500.0,

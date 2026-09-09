@@ -10,6 +10,7 @@ export default function SelectTierPage() {
     totalCapacity: 645,
     remainingTickets: 645,
     isSoldOut: false,
+    standardClosed: true,
     standardPrice: 850,
     middleRowPrice: 750,
     backRowPrice: 500,
@@ -54,6 +55,7 @@ export default function SelectTierPage() {
 
   const {
     isSoldOut,
+    standardClosed,
     standardRemaining,
     middleRowRemaining,
     backRowRemaining,
@@ -62,7 +64,7 @@ export default function SelectTierPage() {
     backRowPrice,
   } = capacityInfo;
 
-  const disableStandard = isSoldOut || standardRemaining <= 0;
+  const disableStandard = true; // ₹850 tier permanently closed
   const disableMiddle = isSoldOut || middleRowRemaining <= 0;
   const disableBack = isSoldOut || backRowRemaining <= 0;
 
@@ -97,38 +99,25 @@ export default function SelectTierPage() {
       ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
-        {/* Standard Seats — ₹850 */}
-        <div
-          onClick={() => !disableStandard && handleSelectTier('STANDARD')}
-          className={`p-6 rounded-xl border-2 text-center space-y-3 transition-all flex flex-col justify-between ${
-            disableStandard
-              ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-300'
-              : 'border-gold bg-cream cursor-pointer hover:border-maroon hover:shadow-xl group'
-          }`}
-        >
+        {/* Standard Seats — ₹850 — CLOSED */}
+        <div className="p-6 rounded-xl border-2 text-center space-y-3 flex flex-col justify-between opacity-50 cursor-not-allowed bg-gray-100 border-gray-300">
           <div className="space-y-2">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-2xl mx-auto group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 rounded-full bg-gray-200 border border-gray-300 flex items-center justify-center text-2xl mx-auto">
               🪑
             </div>
-            <h4 className="font-serif-display text-xl font-bold text-maroon">Standard Seats</h4>
-            <p className="text-xs text-ink-soft leading-relaxed">
+            <h4 className="font-serif-display text-xl font-bold text-gray-500">Standard Seats</h4>
+            <p className="text-xs text-gray-400 leading-relaxed">
               Front and centre sections of the auditorium. Best view of the stage.
             </p>
           </div>
-          <div className="pt-3 border-t border-gold/30 space-y-2">
+          <div className="pt-3 border-t border-gray-200 space-y-2">
             <div>
-              <span className="font-num text-3xl font-extrabold text-maroon">₹{standardPrice || 850}</span>
-              <span className="text-xs text-ink-soft ml-1">per ticket</span>
+              <span className="font-num text-3xl font-extrabold text-gray-400">₹{standardPrice || 850}</span>
+              <span className="text-xs text-gray-400 ml-1">per ticket</span>
             </div>
-            {disableStandard ? (
-              <span className="inline-block text-xs font-bold uppercase text-red-800 bg-red-100 px-3 py-1 rounded">
-                Sold Out
-              </span>
-            ) : (
-              <span className="inline-block text-xs font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded">
-                {standardRemaining} seats left · Select →
-              </span>
-            )}
+            <span className="inline-block text-xs font-bold uppercase text-gray-600 bg-gray-200 px-3 py-1 rounded tracking-widest">
+              🔒 Closed
+            </span>
           </div>
         </div>
 
