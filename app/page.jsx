@@ -35,7 +35,8 @@ export default function EventLandingPage() {
     }
   };
 
-  const { isSoldOut, remainingTickets } = capacityInfo;
+  // Tickets are sold out — override API state
+  const isSoldOut = true;
 
   return (
     <div className="relative overflow-hidden" style={{ background: 'var(--ivory)' }}>
@@ -47,16 +48,29 @@ export default function EventLandingPage() {
         className="rangoli-bg spin-slow absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] opacity-15 pointer-events-none"
       />
 
-      {/* SOLD OUT / CAPACITY ANNOUNCEMENT BANNER */}
-      {isSoldOut ? (
-        <div className="bg-red-800 text-white py-3 px-4 text-center font-bold text-sm tracking-wider uppercase shadow-md relative z-20">
-          🔒 BOOKINGS CLOSED — SOLD OUT! Maximum event capacity has been reached.
-        </div>
-      ) : remainingTickets < 50 ? (
-        <div className="bg-amber-800 text-gold-pale py-2.5 px-4 text-center font-bold text-xs tracking-wider uppercase shadow-md relative z-20">
-          ⚠️ LIMITED SEATS REMAINING! Seats are filling fast.
-        </div>
-      ) : null}
+      {/* SOLD OUT ALERT BANNER */}
+      <div className="relative z-20 bg-red-900 text-white py-5 px-6 text-center shadow-lg">
+        <p className="font-bold text-lg sm:text-xl tracking-wide mb-1">
+          ONLINE TICKETS ARE NOW SOLD OUT! 🎟️
+        </p>
+        <p className="text-sm sm:text-base text-red-100 mb-2">
+          Thank you all for the incredible response! Online ticket sales for our upcoming event are officially closed.
+        </p>
+        <p className="text-sm sm:text-base text-red-100 mb-1">
+          If you are still looking for tickets, please contact us directly:
+        </p>
+        <a
+          href="https://wa.me/919663680808?text=Hi%2C%20I%20am%20looking%20for%20tickets%20for%20the%20Nritya%20Bharathanjali%202026%20event%20on%20September%2026.%20Could%20you%20please%20help%20me%20with%20ticket%20availability%3F"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block font-bold text-base sm:text-lg text-white underline hover:text-red-200 transition-colors mt-1 mb-1"
+        >
+          📞 Phone / WhatsApp: 9663680808
+        </a>
+        <p className="text-sm text-red-200 mt-1">
+          We will do our absolute best to assist you and provide tickets if any additional availability opens up!
+        </p>
+      </div>
 
       {/* Hero Section */}
       <section className="relative pt-12 pb-16 px-6 sm:px-10 text-center max-w-[1440px] mx-auto z-10">
@@ -119,18 +133,12 @@ export default function EventLandingPage() {
 
         {/* Primary CTA */}
         <div className="mt-10 flex flex-col sm:flex-row gap-5 justify-center items-center">
-          {isSoldOut ? (
-            <button
-              disabled
-              className="px-10 py-4 text-base font-bold uppercase rounded bg-red-900 text-white shadow-lg cursor-not-allowed opacity-90"
-            >
-              🔒 BOOKINGS CLOSED - SOLD OUT
-            </button>
-          ) : (
-            <Link href="/booking/login" className="luxe-button luxe-button-solid text-lg px-10 py-4 shadow-xl">
-              BOOK TICKETS NOW &rarr;
-            </Link>
-          )}
+          <button
+            disabled
+            className="px-10 py-4 text-base font-bold uppercase rounded bg-red-900 text-white shadow-lg cursor-not-allowed opacity-90"
+          >
+            🔒 BOOKINGS CLOSED - SOLD OUT
+          </button>
 
           <Link href="/booking/my-bookings" className="luxe-button luxe-button-outline text-lg px-8 py-4">
             📁 MY BOOKINGS & RECEIPTS &rarr;
@@ -190,15 +198,9 @@ export default function EventLandingPage() {
             </div>
 
             <div className="pt-4">
-              {isSoldOut ? (
-                <button disabled className="px-8 py-4 font-bold bg-red-900 text-white rounded cursor-not-allowed opacity-90">
-                  🔒 BOOKINGS CLOSED - SOLD OUT
-                </button>
-              ) : (
-                <Link href="/booking/login" className="luxe-button luxe-button-solid px-10 py-4 text-base">
-                  PROCEED TO TICKET BOOKING &rarr;
-                </Link>
-              )}
+              <button disabled className="px-8 py-4 font-bold bg-red-900 text-white rounded cursor-not-allowed opacity-90">
+                🔒 BOOKINGS CLOSED - SOLD OUT
+              </button>
             </div>
           </div>
 

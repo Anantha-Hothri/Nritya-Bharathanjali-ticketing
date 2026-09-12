@@ -59,6 +59,29 @@ export default function MyBookingsPage() {
 
   return (
     <div className="py-12 px-6 sm:px-10 max-w-6xl mx-auto" style={{ background: 'var(--ivory)' }}>
+
+      {/* SOLD OUT BANNER */}
+      <div className="p-5 mb-8 rounded-xl bg-red-900 text-white text-center shadow-md max-w-2xl mx-auto space-y-1">
+        <p className="font-bold text-base tracking-wide">ONLINE TICKETS ARE NOW SOLD OUT! 🎟️</p>
+        <p className="text-sm text-red-100">
+          Thank you all for the incredible response! Online ticket sales for our upcoming event are officially closed.
+        </p>
+        <p className="text-sm text-red-100">
+          If you are still looking for tickets, please contact us directly:
+        </p>
+        <a
+          href="https://wa.me/919663680808?text=Hi%2C%20I%20am%20looking%20for%20tickets%20for%20the%20Nritya%20Bharathanjali%202026%20event%20on%20September%2026.%20Could%20you%20please%20help%20me%20with%20ticket%20availability%3F"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block font-bold text-base text-white underline hover:text-red-200 transition-colors"
+        >
+          📞 Phone / WhatsApp: 9663680808
+        </a>
+        <p className="text-xs text-red-200">
+          We will do our absolute best to assist you and provide tickets if any additional availability opens up!
+        </p>
+      </div>
+
       {/* Page Header */}
       <div className="text-center mb-8">
         <p className="eyebrow mb-1">RECEIPT & SEAT RETRIEVAL PORTAL</p>
@@ -119,9 +142,14 @@ export default function MyBookingsPage() {
             No confirmed paid bookings were found for <code className="bg-sandal px-1.5 py-0.5 rounded font-mono">{searchQuery}</code>.
           </p>
           <div className="pt-2">
-            <Link href="/booking/login" className="luxe-button luxe-button-solid inline-block">
-              BOOK TICKETS NOW &rarr;
-            </Link>
+            <a
+              href="https://wa.me/919663680808?text=Hi%2C%20I%20am%20looking%20for%20tickets%20for%20the%20Nritya%20Bharathanjali%202026%20event%20on%20September%2026.%20Could%20you%20please%20help%20me%20with%20ticket%20availability%3F"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="luxe-button luxe-button-solid inline-block"
+            >
+              📞 CONTACT US ON WHATSAPP &rarr;
+            </a>
           </div>
         </div>
       ) : bookings.length > 0 ? (
