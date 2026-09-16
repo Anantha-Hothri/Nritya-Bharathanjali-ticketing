@@ -151,18 +151,6 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
       };
     }
 
-    // Back-row seats (Rows Q & R) — only selectable for BACK_ROW bookings
-    const isBackRow = defaultZone === SEATING_ZONES.BACK_ROW.name;
-    const bookingIsBackRow = booking.seatTier === 'BACK_ROW';
-    if (isBackRow && currentStatus !== 'ALLOCATED') {
-      return {
-        bgColor: SEATING_ZONES.BACK_ROW.color, // Teal
-        textColor: '#FFFFFF',
-        statusText: bookingIsBackRow ? 'BACK ROW — AVAILABLE (₹500)' : 'BACK ROW — NOT FOR THIS BOOKING',
-        selectable: bookingIsBackRow,
-      };
-    }
-
     if (currentStatus === 'ALLOCATED') {
       if (allocatedBooking === booking.id) {
         return {
@@ -173,30 +161,20 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
         };
       }
       return {
-        bgColor: '#DC2626', // Red for allocated
+        bgColor: '#DC2626',
         textColor: '#FFFFFF',
         statusText: 'ALLOCATED TO ANOTHER BOOKING',
         selectable: false,
       };
     }
 
-    // VIP seats with AVAILABLE status (released from a prior allocation) — always selectable
-    if (isVip) {
-      return {
-        bgColor: SEATING_ZONES.VIP.color,
-        textColor: '#111827',
-        statusText: 'VIP SEAT — AVAILABLE',
-        selectable: true,
-      };
-    }
-
-    // Standard available seats — only selectable for STANDARD bookings
+    // All available seats are selectable regardless of booking tier
     const zoneObj = Object.values(SEATING_ZONES).find((z) => z.name === defaultZone) || SEATING_ZONES.GENERAL;
     return {
       bgColor: zoneObj.color,
-      textColor: '#FFFFFF',
-      statusText: bookingIsBackRow ? 'STANDARD SEAT — NOT FOR THIS BOOKING' : 'AVAILABLE',
-      selectable: !bookingIsBackRow,
+      textColor: isVip ? '#111827' : '#FFFFFF',
+      statusText: 'AVAILABLE',
+      selectable: true,
     };
   };
 
