@@ -47,7 +47,7 @@ export async function POST(request) {
     const newBooking = await prisma.booking.create({
       data: {
         bookingId: publicBookingId,
-        buyerType: buyerType === 'MSN' ? 'MSN' : 'EXTERNAL',
+        buyerType: buyerType === 'MSN' ? 'MSN' : buyerType === 'OFFSITE' ? 'OFFSITE' : 'EXTERNAL',
         customerName: customerName.trim(),
         studentName: studentName ? studentName.trim() : null,
         phone: phone.trim(),

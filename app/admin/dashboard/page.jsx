@@ -321,6 +321,7 @@ export default function AdminDashboardPage() {
                   <option value="ALL">All Categories</option>
                   <option value="MSN">MSN</option>
                   <option value="EXTERNAL">External Attendee</option>
+                  <option value="OFFSITE">Off-Website / Walk-in</option>
                 </select>
               </div>
 
@@ -446,9 +447,11 @@ export default function AdminDashboardPage() {
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               b.buyerType === 'MSN'
                                 ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                : b.buyerType === 'OFFSITE'
+                                ? 'bg-orange-100 text-orange-900 border border-orange-300'
                                 : 'bg-blue-100 text-blue-900 border border-blue-300'
                             }`}>
-                              {b.buyerType === 'MSN' ? 'MSN' : 'External'}
+                              {b.buyerType === 'MSN' ? 'MSN' : b.buyerType === 'OFFSITE' ? 'Off-Website' : 'External'}
                             </span>
                           </td>
 
@@ -570,6 +573,15 @@ export default function AdminDashboardPage() {
                     }`}
                   >
                     External Guest
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddFormData({ ...addFormData, buyerType: 'OFFSITE' })}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded transition-colors ${
+                      addFormData.buyerType === 'OFFSITE' ? 'bg-orange-700 text-white' : 'text-orange-800 hover:bg-orange-50'
+                    }`}
+                  >
+                    Off-Website / Walk-in
                   </button>
                 </div>
               </div>

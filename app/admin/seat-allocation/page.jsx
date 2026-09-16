@@ -25,6 +25,7 @@ export default function AdminSeatAllocationPage() {
 
   // UI status feedback
   const [submitting, setSubmitting] = useState(false);
+  const [deallocating, setDeallocating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [lastAllocatedInfo, setLastAllocatedInfo] = useState(null);
@@ -163,9 +164,42 @@ export default function AdminSeatAllocationPage() {
     }
   };
 
+  // Deallocate seats for the selected booking
+  const handleDeallocate = async () => {
+    if (!selectedBooking) return;
+    if (!window.confirm(`Deallocate seats (${selectedBooking.allocatedSeats}) from ${cleanName(selectedBooking.customerName)}? These seats will return to the available pool.`)) return;
+
+    setDeallocating(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/admin/deallocate-seats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: selectedBooking.id }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        triggerToast(`🔓 Seats (${selectedBooking.allocatedSeats}) deallocated from ${cleanName(selectedBooking.customerName)} — returned to available pool.`);
+        setSelectedBooking(null);
+        setSelectedSeatIds([]);
+        setLastAllocatedInfo(null);
+        loadData();
+      } else {
+        setErrorMsg(data.error || 'Deallocation failed.');
+      }
+    } catch (e) {
+      setErrorMsg('Network error during deallocation.');
+    } finally {
+      setDeallocating(false);
+    }
+  };
+
   // Filter Bookings for Bottom Panel
   const filteredBookings = bookings.filter((b) => {
-    // Only PAID bookings are eligible for seat allocation
+    // PAID bookings and admin-created OFFSITE bookings are eligible for seat allocation
     if (b.paymentStatus !== 'PAID') return false;
 
     const isAllocated = b.allocationStatus === 'ALLOCATED' && b.allocatedSeats;
@@ -635,8 +669,8 @@ export default function AdminSeatAllocationPage() {
                 )}
               </div>
 
-              {/* Action Button */}
-              <div>
+              {/* Action Buttons */}
+              <div className="space-y-2">
                 <button
                   onClick={handleAllocateSeatsSubmit}
                   disabled={
@@ -651,8 +685,26 @@ export default function AdminSeatAllocationPage() {
                   }`}
                 >
                   <span>✅</span>
-                  <span>{submitting ? 'ALLOCATING...' : 'ALLOCATE SEATS'}</span>
+                  <span>
+                    {submitting
+                      ? 'SAVING...'
+                      : selectedBooking?.allocationStatus === 'ALLOCATED' && selectedBooking?.allocatedSeats
+                      ? 'REALLOCATE SEATS'
+                      : 'ALLOCATE SEATS'}
+                  </span>
                 </button>
+
+                {/* Deallocate button — only shown when booking already has seats */}
+                {selectedBooking && selectedBooking.allocationStatus === 'ALLOCATED' && selectedBooking.allocatedSeats && (
+                  <button
+                    onClick={handleDeallocate}
+                    disabled={deallocating}
+                    className="w-full py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border-2 bg-red-900 hover:bg-red-800 text-white border-red-700 cursor-pointer disabled:opacity-50"
+                  >
+                    <span>🔓</span>
+                    <span>{deallocating ? 'DEALLOCATING...' : `DEALLOCATE SEATS (${selectedBooking.allocatedSeats})`}</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -763,9 +815,13 @@ export default function AdminSeatAllocationPage() {
                           </td>
                           <td className="p-2.5">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              b.buyerType === 'MSN' ? 'bg-amber-100 text-amber-900' : 'bg-blue-100 text-blue-900'
+                              b.buyerType === 'MSN'
+                                ? 'bg-amber-100 text-amber-900'
+                                : b.buyerType === 'OFFSITE'
+                                ? 'bg-orange-100 text-orange-900 border border-orange-300'
+                                : 'bg-blue-100 text-blue-900'
                             }`}>
-                              {b.buyerType === 'MSN' ? 'MSN' : 'External'}
+                              {b.buyerType === 'MSN' ? 'MSN' : b.buyerType === 'OFFSITE' ? 'Off-Website' : 'External'}
                             </span>
                           </td>
                           <td className="p-2.5">
