@@ -26,6 +26,7 @@ export default function AdminSeatAllocationPage() {
   // UI status feedback
   const [submitting, setSubmitting] = useState(false);
   const [deallocating, setDeallocating] = useState(false);
+  const [showDeallocateConfirm, setShowDeallocateConfirm] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [lastAllocatedInfo, setLastAllocatedInfo] = useState(null);
@@ -82,6 +83,7 @@ export default function AdminSeatAllocationPage() {
     setSelectedBooking(booking);
     setSelectedSeatIds([]);
     setErrorMsg('');
+    setShowDeallocateConfirm(false);
   };
 
   // Handle clicking a seat pill on the interactive chart
@@ -110,12 +112,16 @@ export default function AdminSeatAllocationPage() {
   };
 
   // Submit Seat Allocation for Selected Booking
-  const handleAllocateSeatsSubmit = async () => {
+  const handleAllocateSeatsSubmit = async (forceConfirmed = false) => {
     if (!selectedBooking) return;
 
-    if (selectedSeatIds.length !== selectedBooking.ticketQty) {
-      setErrorMsg(`Required seat count mismatch. Selected ${selectedSeatIds.length} out of ${selectedBooking.ticketQty} required seats.`);
-      return;
+    // If count mismatches and not yet confirmed, show warning instead of blocking
+    if (!forceConfirmed && selectedSeatIds.length !== selectedBooking.ticketQty) {
+      const msg =
+        selectedSeatIds.length === 0
+          ? `No seats selected. Customer ${cleanName(selectedBooking.customerName)} requested ${selectedBooking.ticketQty} seat(s). Allocate with 0 seats anyway? (This will clear any existing allocation.)`
+          : `Customer ${cleanName(selectedBooking.customerName)} requested ${selectedBooking.ticketQty} seat(s) but you have selected ${selectedSeatIds.length}. Allocate with ${selectedSeatIds.length} seat(s) anyway?`;
+      if (!window.confirm(msg)) return;
     }
 
     setSubmitting(true);
@@ -167,7 +173,6 @@ export default function AdminSeatAllocationPage() {
   // Deallocate seats for the selected booking
   const handleDeallocate = async () => {
     if (!selectedBooking) return;
-    if (!window.confirm(`Deallocate seats (${selectedBooking.allocatedSeats}) from ${cleanName(selectedBooking.customerName)}? These seats will return to the available pool.`)) return;
 
     setDeallocating(true);
     setErrorMsg('');
@@ -671,15 +676,12 @@ export default function AdminSeatAllocationPage() {
 
               {/* Action Buttons */}
               <div className="space-y-2">
+                {/* Allocate / Reallocate */}
                 <button
-                  onClick={handleAllocateSeatsSubmit}
-                  disabled={
-                    !selectedBooking ||
-                    selectedSeatIds.length !== selectedBooking.ticketQty ||
-                    submitting
-                  }
+                  onClick={() => handleAllocateSeatsSubmit(false)}
+                  disabled={!selectedBooking || submitting}
                   className={`w-full py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border-2 ${
-                    selectedBooking && selectedSeatIds.length === selectedBooking.ticketQty
+                    selectedBooking && !submitting
                       ? 'bg-[#6B1A2B] hover:bg-[#8B2338] text-[#FAF6EF] border-[#D4AF37] cursor-pointer'
                       : 'bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed'
                   }`}
@@ -689,21 +691,48 @@ export default function AdminSeatAllocationPage() {
                     {submitting
                       ? 'SAVING...'
                       : selectedBooking?.allocationStatus === 'ALLOCATED' && selectedBooking?.allocatedSeats
-                      ? 'REALLOCATE SEATS'
-                      : 'ALLOCATE SEATS'}
+                      ? `REALLOCATE SEATS (${selectedSeatIds.length} selected)`
+                      : `ALLOCATE SEATS (${selectedSeatIds.length} selected)`}
                   </span>
                 </button>
 
-                {/* Deallocate button — only shown when booking already has seats */}
+                {/* Deallocate — only shown when booking already has seats */}
                 {selectedBooking && selectedBooking.allocationStatus === 'ALLOCATED' && selectedBooking.allocatedSeats && (
-                  <button
-                    onClick={handleDeallocate}
-                    disabled={deallocating}
-                    className="w-full py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border-2 bg-red-900 hover:bg-red-800 text-white border-red-700 cursor-pointer disabled:opacity-50"
-                  >
-                    <span>🔓</span>
-                    <span>{deallocating ? 'DEALLOCATING...' : `DEALLOCATE SEATS (${selectedBooking.allocatedSeats})`}</span>
-                  </button>
+                  <>
+                    {showDeallocateConfirm ? (
+                      <div className="p-3 rounded-lg border-2 border-red-600 bg-red-950 text-white space-y-2 text-xs">
+                        <p className="font-bold text-center">Confirm Deallocation</p>
+                        <p className="text-red-200 text-center">
+                          Free seats <span className="font-mono font-bold">{selectedBooking.allocatedSeats}</span> from{' '}
+                          <span className="font-semibold">{cleanName(selectedBooking.customerName)}</span>?
+                          <br />These seats will return to the available pool.
+                        </p>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={() => { setShowDeallocateConfirm(false); handleDeallocate(); }}
+                            disabled={deallocating}
+                            className="flex-1 py-2 rounded bg-red-700 hover:bg-red-600 text-white font-bold uppercase cursor-pointer disabled:opacity-50"
+                          >
+                            {deallocating ? 'Deallocating...' : 'Yes, Deallocate'}
+                          </button>
+                          <button
+                            onClick={() => setShowDeallocateConfirm(false)}
+                            className="flex-1 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white font-bold uppercase cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowDeallocateConfirm(true)}
+                        className="w-full py-2.5 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 border-2 bg-red-900 hover:bg-red-800 text-white border-red-700 cursor-pointer"
+                      >
+                        <span>🔓</span>
+                        <span>DEALLOCATE SEATS ({selectedBooking.allocatedSeats})</span>
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

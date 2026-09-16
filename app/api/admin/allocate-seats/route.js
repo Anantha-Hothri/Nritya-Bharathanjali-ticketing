@@ -36,16 +36,6 @@ export async function POST(request) {
       );
     }
 
-    if (seatIds.length !== booking.ticketQty) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Seat count mismatch. Booking requires exactly ${booking.ticketQty} seats, but ${seatIds.length} were selected.`,
-        },
-        { status: 400 }
-      );
-    }
-
     // Check if any selected seat is locked or allocated to another booking
     const seatsToAllocate = await prisma.seat.findMany({
       where: { seatId: { in: seatIds } },

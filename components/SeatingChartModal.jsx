@@ -72,8 +72,11 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
 
   const handleConfirmAllocation = async () => {
     if (selectedSeats.length !== requiredCount) {
-      setErrorMsg(`Please select exactly ${requiredCount} seats before confirming.`);
-      return;
+      const msg =
+        selectedSeats.length === 0
+          ? `No seats selected. Customer requested ${requiredCount} seat(s). Confirm with 0 seats? (This clears any existing allocation.)`
+          : `Customer requested ${requiredCount} seat(s) but you've selected ${selectedSeats.length}. Confirm allocation with ${selectedSeats.length} seat(s)?`;
+      if (!window.confirm(msg)) return;
     }
 
     setSubmitting(true);
@@ -250,14 +253,22 @@ export default function SeatingChartModal({ booking, onClose, onConfirmSuccess }
           {/* Action CTAs */}
           <button
             onClick={handleConfirmAllocation}
-            disabled={selectedSeats.length !== requiredCount || submitting}
+            disabled={submitting}
             className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-lg flex items-center gap-2 border-2 ${
-              selectedSeats.length === requiredCount && !submitting
-                ? 'bg-[#6B1A2B] hover:bg-[#8A2338] text-white border-[#D4AF37] cursor-pointer'
+              !submitting
+                ? selectedSeats.length === requiredCount
+                  ? 'bg-[#6B1A2B] hover:bg-[#8A2338] text-white border-[#D4AF37] cursor-pointer'
+                  : 'bg-amber-700 hover:bg-amber-600 text-white border-amber-400 cursor-pointer'
                 : 'bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed opacity-60'
             }`}
           >
-            <span>💾 ALLOCATE {selectedSeats.length} SEATS</span>
+            <span>
+              {submitting
+                ? '💾 SAVING...'
+                : selectedSeats.length === requiredCount
+                ? `💾 ALLOCATE ${selectedSeats.length} SEATS`
+                : `⚠️ ALLOCATE ${selectedSeats.length} / ${requiredCount} SEATS`}
+            </span>
           </button>
 
           <button
