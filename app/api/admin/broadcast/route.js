@@ -65,7 +65,21 @@ export async function POST(request) {
       orderBy: { bookingDate: 'desc' },
     });
 
-    const totalMatched = matchedBookings.length;
+    // Deduplicate: one email/WhatsApp per unique contact (keep most recent booking)
+    const contactKey = (b) =>
+      channel === 'WHATSAPP'
+        ? (b.whatsapp || b.phone || '').replace(/\D/g, '')
+        : (b.email || '').toLowerCase().trim();
+
+    const seen = new Set();
+    const uniqueBookings = matchedBookings.filter((b) => {
+      const key = contactKey(b);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const totalMatched = uniqueBookings.length;
     let sentCount = 0;
     let failedCount = 0;
     const details = [];
@@ -76,7 +90,7 @@ export async function POST(request) {
         data: { attachmentsJson: JSON.stringify(attachments || []) },
       });
 
-      for (const booking of matchedBookings) {
+      for (const booking of uniqueBookings) {
         const cleanName = booking.customerName
           ? booking.customerName.replace(/\s*\([^)]*\)/g, '').trim()
           : 'Valued Guest';
@@ -116,7 +130,7 @@ export async function POST(request) {
     }
 
     // Send notifications to each recipient
-    for (const booking of matchedBookings) {
+    for (const booking of uniqueBookings) {
       const res = await sendBroadcastNotification({
         channel,
         booking,
