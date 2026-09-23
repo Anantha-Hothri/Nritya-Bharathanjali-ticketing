@@ -5,6 +5,7 @@ import { sendBroadcastNotification } from '../../../../lib/notificationService';
 import { queueWhatsAppMessage, formatWhatsAppMessage } from '../../../../lib/whatsappQueue';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(request) {
   const adminSession = await getAdminSession(request);
@@ -13,15 +14,27 @@ export async function POST(request) {
   }
 
   try {
-    const body = await request.json();
-    const {
-      channel = 'EMAIL', // 'EMAIL' | 'WHATSAPP'
-      studentType = 'BOTH', // 'MSN' | 'EXTERNAL' | 'BOTH'
-      paymentStatus = 'BOTH', // 'PAID' | 'UNPAID' | 'BOTH'
-      seatAllocation = 'BOTH', // 'ALLOCATED' | 'NOT_ALLOCATED' | 'BOTH'
-      message = '',
-      attachments = [],
-    } = body;
+    const formData = await request.formData();
+    const channel = formData.get('channel') || 'EMAIL';
+    const studentType = formData.get('studentType') || 'BOTH';
+    const paymentStatus = formData.get('paymentStatus') || 'BOTH';
+    const seatAllocation = formData.get('seatAllocation') || 'BOTH';
+    const message = formData.get('message') || '';
+    const attachmentCount = parseInt(formData.get('attachmentCount') || '0', 10);
+    const attachments = [];
+    for (let i = 0; i < attachmentCount; i++) {
+      const file = formData.get(`file_${i}`);
+      const meta = JSON.parse(formData.get(`fileMeta_${i}`) || '{}');
+      if (file && file.arrayBuffer) {
+        const buf = Buffer.from(await file.arrayBuffer());
+        attachments.push({
+          name: meta.name || file.name,
+          type: meta.type || file.type,
+          isImage: meta.isImage || false,
+          data: `data:${meta.type || file.type};base64,${buf.toString('base64')}`,
+        });
+      }
+    }
 
     if (!message || !message.trim()) {
       return NextResponse.json({ success: false, error: 'Broadcast message body cannot be empty.' }, { status: 400 });

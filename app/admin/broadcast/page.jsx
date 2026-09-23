@@ -154,25 +154,70 @@ export default function AdminBroadcastPage() {
   });
 
   // File Upload Handlers
+  const compressImage = (file, maxSizeKB = 800) =>
+    new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          // Scale down if needed so compressed output stays under maxSizeKB
+          const scale = Math.min(1, Math.sqrt((maxSizeKB * 1024 * 4) / (width * height * 3)));
+          canvas.width = Math.round(width * scale);
+          canvas.height = Math.round(height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          // Try quality steps until we're under the size target
+          let quality = 0.85;
+          let dataUrl = canvas.toDataURL('image/jpeg', quality);
+          while (dataUrl.length > maxSizeKB * 1024 * 1.37 && quality > 0.3) {
+            quality -= 0.1;
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+          }
+          resolve({ dataUrl, compressed: true });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
   const handleFileUpload = (e, isImageOnly = false) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64Data = event.target.result;
-        const newAttachment = {
-          id: `${Date.now()}-${Math.random()}`,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          isImage: isImageOnly || file.type.startsWith('image/'),
-          data: base64Data,
+      const isImage = isImageOnly || file.type.startsWith('image/');
+      if (isImage) {
+        compressImage(file).then(({ dataUrl }) => {
+          setAttachments((prev) => [
+            ...prev,
+            {
+              id: `${Date.now()}-${Math.random()}`,
+              name: file.name,
+              size: Math.round((dataUrl.length * 3) / 4),
+              type: 'image/jpeg',
+              isImage: true,
+              data: dataUrl,
+            },
+          ]);
+        });
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setAttachments((prev) => [
+            ...prev,
+            {
+              id: `${Date.now()}-${Math.random()}`,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              isImage: false,
+              data: event.target.result,
+            },
+          ]);
         };
-        setAttachments((prev) => [...prev, newAttachment]);
-      };
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      }
     });
 
     // Reset inputs
@@ -211,17 +256,28 @@ export default function AdminBroadcastPage() {
     setAlertFeedback(null);
 
     try {
+      const formData = new FormData();
+      formData.append('channel', channel);
+      formData.append('studentType', studentType);
+      formData.append('paymentStatus', paymentStatus);
+      formData.append('seatAllocation', seatAllocation);
+      formData.append('message', message);
+      formData.append('attachmentCount', String(attachments.length));
+      attachments.forEach((att, i) => {
+        // Convert base64 DataURL → Blob so it travels as raw binary (no size overhead)
+        const [header, b64] = att.data.split(',');
+        const mime = header.match(/:(.*?);/)[1];
+        const bytes = atob(b64);
+        const buf = new Uint8Array(bytes.length);
+        for (let j = 0; j < bytes.length; j++) buf[j] = bytes.charCodeAt(j);
+        const blob = new Blob([buf], { type: mime });
+        formData.append(`file_${i}`, blob, att.name);
+        formData.append(`fileMeta_${i}`, JSON.stringify({ name: att.name, type: mime, isImage: att.isImage }));
+      });
+
       const res = await fetch('/api/admin/broadcast', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          channel,
-          studentType,
-          paymentStatus,
-          seatAllocation,
-          message,
-          attachments,
-        }),
+        body: formData, // no Content-Type header — browser sets multipart boundary automatically
       });
 
       const data = await res.json();
